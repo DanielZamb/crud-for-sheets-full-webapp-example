@@ -9,11 +9,13 @@ This Google Apps Script web application provides a complete, working example of 
 ## Features Demonstrated
 
 ### Basic CRUD Operations
+
 - **Create, Read, Update, Delete** operations for all entity types
 - Automatic type validation and conversion (string, number, boolean, date)
 - Schema configuration with default values and null handling
 
 ### Advanced Database Features
+
 - **createWithLogs() / updateWithLogs()** - Enhanced debugging with detailed validation logs
 - **removeWithCascade()** - Automatic cleanup of related records to maintain referential integrity
 - **readIdList()** - Efficient bulk reading by multiple IDs
@@ -21,12 +23,14 @@ This Google Apps Script web application provides a complete, working example of 
 - **History tables** - Soft delete support for data recovery
 
 ### Relationship Management
+
 - **One-to-Many relationships** - Using `getRelatedRecords()` to query child records
 - **Many-to-Many relationships** - Junction table support with `getJunctionRecords()`
 - **Automatic junction tables** - Generated via `createManyToManyTableConfig()`
 - **Foreign key integrity** - Automatic validation and cascade operations
 
 ### Concurrency & Performance
+
 - **Write locks** - Automatic conflict resolution for concurrent operations
 - **Optimistic UI updates** - Immediate feedback with automatic rollback on failure
 - **Caching support** - Optional caching for read operations
@@ -52,19 +56,26 @@ The application implements a sample e-commerce schema:
 - `appsscript.json` - Google Apps Script manifest
 - `.clasp.json` - CLASP configuration for deployment
 
+## Use
+
+go to [Test CRUD WebApp](https://script.google.com/macros/s/AKfycbx2XYI88p6MuSJZPtggWZkguAii6jI-CBEPAwlS_XV5beFSVVzR_U9H-NpkcgBF8Vc-dw/exec) to see the app in action.
+
 ## Setup & Deployment
 
 1. Install [CLASP](https://github.com/google/clasp):
+
    ```bash
    npm install -g @google/clasp
    ```
 
 2. Login to Google Apps Script:
+
    ```bash
    clasp login
    ```
 
 3. Push the project to Google Apps Script:
+
    ```bash
    clasp push
    ```
@@ -82,6 +93,7 @@ The application implements a sample e-commerce schema:
 ## Use Cases
 
 This demo is ideal for developers who want to:
+
 - Build web applications without setting up a traditional database
 - Leverage Google Sheets as a simple, accessible database
 - Understand relationship modeling in a spreadsheet context

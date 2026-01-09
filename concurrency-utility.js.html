@@ -1,0 +1,426 @@
+<script>
+/**
+ * Concurrency Management Utility for GAS-DB Test Web App
+ *
+ * This utility provides a reusable function to handle optimistic UI updates
+ * and concurrency-safe edit/delete operations against Google Apps Script backend.
+ *
+ * Features:
+ * - Optimistic UI updates with DataTables
+ * - Write lock detection and automatic fallback
+ * - Support for Select2 dropdowns
+ * - Comprehensive error handling
+ *
+ * Based on the finance-tracker concurrency utility pattern.
+ */
+
+// Constants
+const RELOAD_DELAY_MS = 1300;
+const SUCCESS_TOAST_TIMER = 3000;
+const LOCK_MESSAGE_TIMER = 5000;
+
+/**
+ * Helper function for loading toast notifications
+ */
+function defaultLoadingSwalToast(message) {
+    Swal.fire({
+        title: 'Loading...',
+        text: message,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+}
+
+/**
+ * Helper function for error notifications
+ */
+function defaultSwalErr(action, error) {
+    console.error('Error during', action, ':', error);
+    Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: `Failed to ${action}`,
+        footer: error ? error.toString() : ''
+    });
+}
+
+/**
+ * Updates form fields from response data, handling both Select2 and regular inputs.
+ * @param {Object.<string,string>} fields - Map of selector to data property key
+ * @param {Object} data - Response data object
+ */
+function updateFormFields(fields, data) {
+    Object.entries(fields).forEach(([selector, dataKey]) => {
+        const $element = $(selector);
+        if (!$element.length) return;
+
+        const value = data[dataKey];
+
+        // Handle Select2 dropdowns
+        if ($element.data('select2')) {
+            // For Select2, set the value and trigger change
+            $element.val(value).trigger('change');
+        } else if (selector.includes('Date') && value) {
+            // Handle date fields - extract YYYY-MM-DD
+            $element.val(value.substr(0, 10));
+        } else {
+            // Regular input
+            $element.val(value);
+        }
+    });
+}
+
+/**
+ * Updates a DataTable row with new data, or triggers reload if row not found.
+ * @param {Object} dataTable - DataTables API instance
+ * @param {Object} recordData - Record data with id property
+ * @param {Function} reloaderFunc - Function to reload table
+ * @param {string} entity - Entity name for logging
+ * @returns {boolean} True if row was updated, false if reload was triggered
+ */
+function updateDataTableRow(dataTable, recordData, reloaderFunc, entity) {
+    const rowIndexes = dataTable
+        .rows()
+        .indexes()
+        .filter(function(idx) {
+            return dataTable.row(idx).data().id === recordData.id;
+        });
+
+    if (rowIndexes.length) {
+        dataTable
+            .row(rowIndexes[0])
+            .data(recordData)
+            .draw(false);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: 'Tabla actualizada correctamente',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: SUCCESS_TOAST_TIMER
+        });
+        return true;
+    } else {
+        reloaderFunc(true, RELOAD_DELAY_MS);
+        console.log(`Refreshed data for ${entity}`, recordData);
+        return false;
+    }
+}
+
+/**
+ * Shows a warning toast and triggers table reload for missing records.
+ * @param {Function} reloaderFunc - Function to reload table
+ * @param {string} entity - Entity name for context
+ */
+function handleMissingRecord(reloaderFunc, entity) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Jmm...🤔',
+        html: 'Parece que este registro ya no existe! <br> Dejame Actualizo la informacion.',
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    reloaderFunc(true, RELOAD_DELAY_MS);
+    console.warn(`Unable to refresh ${entity} data - record not found`);
+}
+
+/**
+ * Safely parses a JSON response string.
+ * @param {string} responseString - JSON string to parse
+ * @returns {Object|null} Parsed object or null on error
+ */
+function parseResponse(responseString) {
+    try {
+        return JSON.parse(responseString);
+    } catch (e) {
+        console.error('Failed to parse response:', e);
+        return null;
+    }
+}
+
+/**
+ * Handles successful record refresh after a write lock conflict.
+ * @param {Object} responseData - Parsed response data
+ * @param {Object} params - Original function parameters
+ */
+function handleLockFallbackSuccess(responseData, params) {
+    const { fields, dataTable, reloaderFunc, entity, scriptConfig } = params;
+
+    if (fields && Object.keys(fields).length > 0) {
+        updateFormFields(fields, responseData);
+    }
+
+    updateDataTableRow(dataTable, responseData, reloaderFunc, entity);
+
+    if (scriptConfig.onFallBack) {
+        scriptConfig.onFallBack();
+    }
+
+    console.log(`Refreshed data for ${entity} after getting locked out.`, responseData);
+}
+
+/**
+ * Main concurrency management function
+ *
+ * Orchestrates optimistic UI updates and concurrency-safe edit/delete operations
+ * against GAS backend functions, updating a DataTables instance and form fields.
+ *
+ * This function:
+ * - Shows a loading toast (optionally delayed)
+ * - Calls a backend Apps Script function via google.script.run
+ * - On success:
+ *   - For edition: updates provided form fields and the DataTable row (or triggers a reload)
+ *   - For removing: removes the row from the DataTable
+ *   - Invokes scriptConfig.onSuccess if provided
+ * - On concurrency lock (500 with 'write lock'):
+ *   - Fetches fresh record data via scriptConfig.readRecordFunc
+ *   - Re-applies field and table updates or triggers a reload
+ *   - Invokes scriptConfig.onFallBack if provided
+ * - On missing record (404), shows a notice and triggers a reload
+ * - On validation errors (400), shows an error message
+ *
+ * Environment prerequisites:
+ * - jQuery, DataTables, SweetAlert2
+ * - google.script.run (Apps Script web UI)
+ *
+ * @param {Object} params
+ * @param {'edition'|'removing'} [params.operation='edition'] Action to perform.
+ * @param {string} [params.entity='entity'] Human-readable entity name (used in toasts).
+ * @param {Object.<string,string>} [params.fields={}] Map of input selectors to response.data property keys to update on success (edition only).
+ * @param {number} [params.id=0] Record identifier to edit/delete.
+ * @param {Object|null} [params.updatedData=null] Object payload sent to backend when requiresObject is true.
+ * @param {Object} [params.dataTable=null] DataTables API instance managing the visible table.
+ * @param {Object} [params.$dataTableRow=null] jQuery TR element (or DataTables-recognized row selector) for the current row.
+ * @param {Function} [params.reloaderFunc=() => {}] Callback to reload table data. Called as reloaderFunc(true, 1300) when needed.
+ * @param {number} [params.waitForSwal=0] Delay in ms before showing the loading toast. If 0, show immediately.
+ * @param {Object} [params.scriptConfig={}] Backend integration config.
+ * @param {string} [params.scriptConfig.mainFunction=''] Backend function name to execute (edition/removing).
+ * @param {string} [params.scriptConfig.readRecordFunc=''] Backend function name to read a single record (used on lock fallback).
+ * @param {boolean} [params.scriptConfig.requiresObject=false] If true, backend mainFunction receives [updatedData, id]; otherwise [id].
+ * @param {Function} [params.scriptConfig.onSuccess=() => {}] Optional callback after a successful operation.
+ * @param {Function} [params.scriptConfig.onFallBack=() => {}] Optional callback after a successful lock-fallback refresh.
+ *
+ * @throws {Error} If required parameters are missing or operation is invalid.
+ *
+ * @example
+ * // Edit operation
+ * manageConcurrencyEditDelete({
+ *   operation: 'edition',
+ *   entity: 'categoria',
+ *   fields: {
+ *     '#editCategoryName': 'name',
+ *     '#editCategoryDate': 'created_at'
+ *   },
+ *   id: categoryId,
+ *   updatedData: { name: 'New Name', created_at: '2024-01-01' },
+ *   dataTable: categoryModule.categoryTable,
+ *   $dataTableRow: $row,
+ *   reloaderFunc: loadCategories,
+ *   scriptConfig: {
+ *     mainFunction: 'updateCategory',
+ *     readRecordFunc: 'readCategoryById',
+ *     requiresObject: true
+ *   }
+ * });
+ *
+ * @example
+ * // Delete operation
+ * manageConcurrencyEditDelete({
+ *   operation: 'removing',
+ *   entity: 'producto',
+ *   id: productId,
+ *   dataTable: productModule.productTable,
+ *   $dataTableRow: $row,
+ *   reloaderFunc: loadProducts,
+ *   scriptConfig: {
+ *     mainFunction: 'removeProduct',
+ *     readRecordFunc: 'readProductById',
+ *     requiresObject: false
+ *   }
+ * });
+ */
+function manageConcurrencyEditDelete({
+    operation = 'edition',
+    entity = 'entity',
+    fields = {},
+    id = 0,
+    updatedData = null,
+    dataTable = null,
+    $dataTableRow = null,
+    reloaderFunc = () => {},
+    waitForSwal = 0,
+    scriptConfig = {
+        mainFunction: '',
+        readRecordFunc: '',
+        requiresObject: false,
+        onSuccess: () => {},
+        onFallBack: () => {}
+    }
+} = {}) {
+    console.log('manageConcurrencyEditDelete called with:', {
+        operation,
+        entity,
+        fields,
+        id,
+        updatedData,
+        dataTable,
+        $dataTableRow,
+        scriptConfig
+    });
+
+    // Validation
+    if (!entity || !dataTable || !$dataTableRow || !scriptConfig.mainFunction || !scriptConfig.readRecordFunc) {
+        throw new Error('Missing required parameters: entity, dataTable, $dataTableRow, scriptConfig.mainFunction, scriptConfig.readRecordFunc');
+    }
+
+    if (!['edition', 'removing'].includes(operation)) {
+        throw new Error('Invalid operation type. Must be "edition" or "removing"');
+    }
+
+    // Show loading toast
+    const loadingMessage = `${operation === 'edition' ? 'edito' : 'elimino'} la/el ${entity}`;
+    if (waitForSwal) {
+        setTimeout(() => defaultLoadingSwalToast(loadingMessage), waitForSwal);
+    } else {
+        defaultLoadingSwalToast(loadingMessage);
+    }
+
+    // Prepare arguments and capture row data
+    const args = scriptConfig.requiresObject ? [updatedData, id] : [id];
+    const rowData = dataTable.row($dataTableRow).data();
+    const params = { fields, dataTable, reloaderFunc, entity, scriptConfig, operation };
+
+    // Execute backend operation
+    google.script.run
+        .withSuccessHandler((responseString) => {
+            const response = parseResponse(responseString);
+            if (!response) {
+                defaultSwalErr(`parsear la respuesta del servidor para ${entity}`, 'Invalid JSON response');
+                return;
+            }
+
+            // Success case (200)
+            if (response.status === 200) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Exito!",
+                    text: `${entity} ${operation === 'edition' ? 'editada' : 'eliminada'}`
+                });
+                console.log(entity, operation, ":", response);
+
+                if (operation === 'edition') {
+                    // Update form fields
+                    if (fields && Object.keys(fields).length > 0) {
+                        updateFormFields(fields, response.data);
+                    }
+
+                    // Update DataTable row
+                    updateDataTableRow(dataTable, response.data, reloaderFunc, entity);
+                } else if (operation === 'removing') {
+                    // Remove row from DataTable
+                    dataTable
+                        .row($dataTableRow)
+                        .remove()
+                        .draw(false);
+                    Swal.fire({
+                        icon: "success",
+                        title: "Exito!",
+                        text: `${entity} Eliminada: ${rowData.name || rowData.id}`
+                    });
+                }
+
+                // Invoke success callback
+                if (scriptConfig.onSuccess) {
+                    scriptConfig.onSuccess();
+                }
+            }
+            // Write lock conflict (500 with 'write lock') - fetch fresh data
+            else if (response.status === 500 && response.error && response.error.includes('write lock')) {
+                Swal.fire({
+                    icon: "info",
+                    title: "Oh! 🤓",
+                    html: `Parece que alguien editó/eliminó primero esta ${entity}; intentalo de nuevo. <br> Dejame te traigo la información más actualizada!`,
+                    showConfirmButton: false,
+                    timer: LOCK_MESSAGE_TIMER,
+                    timerProgressBar: true,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Fetch fresh record data
+                google.script.run
+                    .withSuccessHandler((lockResponseString) => {
+                        const lockResponse = parseResponse(lockResponseString);
+                        if (!lockResponse) {
+                            defaultSwalErr(`parsear la respuesta después del bloqueo para ${entity}`, 'Invalid JSON response');
+                            return;
+                        }
+
+                        if (lockResponse.status === 200) {
+                            handleLockFallbackSuccess(lockResponse.data, params);
+                        } else if (lockResponse.status === 404) {
+                            handleMissingRecord(reloaderFunc, entity);
+                        } else if (lockResponse.status === 400) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error de validación',
+                                text: lockResponse.error || 'Los datos proporcionados no son válidos.',
+                                showConfirmButton: true
+                            });
+                            console.error(`Validation error for ${entity} (lock fallback)`, lockResponse);
+                        } else if (lockResponse.status === 500) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error del servidor',
+                                text: lockResponse.error || 'Ocurrió un error inesperado.',
+                                showConfirmButton: true
+                            });
+                            console.error(`Server error for ${entity} (lock fallback)`, lockResponse);
+                        }
+                    })
+                    .withFailureHandler((err) => {
+                        defaultSwalErr(
+                            `intentar ${operation === 'edition' ? 'editar' : 'eliminar'} la/el ${entity}, después de ser bloqueado por el sistema`,
+                            err
+                        );
+                    })
+                    [scriptConfig.readRecordFunc](id);
+            }
+            // Record not found (404)
+            else if (response.status === 404) {
+                handleMissingRecord(reloaderFunc, entity);
+            }
+            // Validation errors (400)
+            else if (response.status === 400) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de validación',
+                    text: response.error || 'Los datos proporcionados no son válidos.',
+                    showConfirmButton: true
+                });
+                console.error(`Validation error for ${entity}`, response);
+            }
+            // Other server errors (500)
+            else if (response.status === 500) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error del servidor',
+                    text: response.error || 'Ocurrió un error inesperado.',
+                    showConfirmButton: true
+                });
+                console.error(`Server error for ${entity}`, response);
+            }
+        })
+        .withFailureHandler((err) => {
+            defaultSwalErr(`intentar ${operation === 'edition' ? 'editar' : 'eliminar'} la/el ${entity}`, err);
+        })
+        [scriptConfig.mainFunction].apply(null, args);
+}
+</script>

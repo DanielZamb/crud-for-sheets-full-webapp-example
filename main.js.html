@@ -86,9 +86,12 @@
     $("#createCategoryForm").on("submit", function (e) {
         e.preventDefault();
         defaultLoadingSwalToast("creo la categoria!")
-        const newCatName = $("#createCategoryName").val();
+        const newCatName = $("#createCategoryName").val().length > 0 ? $("#createCategoryName").val() : null;
         const newCatDate = $("#createCategoryDate").val();
-
+        payload = {name: newCatName, created_at: newCatDate}
+        // if (!newCatName){
+        //   delete payload.name;
+        // }
         google.script.run
             .withSuccessHandler((response) => {
                 Swal.fire("Exito!", "Categoria Creada", "success");
@@ -96,7 +99,7 @@
                 console.log("created new category!", response);
                 // const newCategory = response.
             })
-            .createCategory({name: newCatName, created_at: newCatDate});
+            .createCategory(payload);
 
         console.log("Submitting new category:", newCatName, newCatDate);
     });
@@ -107,137 +110,30 @@
         const catId = categoryModule.currentRow.id;
         const catName = $("#editCategoryName").val();
         const catDate = $("#editCategoryDate").val();
-        defaultLoadingSwalToast("edito la categoria!")
 
-        google.script.run
-            .withSuccessHandler((response) => {
-                response = JSON.parse(response);
-                if (response.status === 200) {
-                    Swal.fire("Exito!", `Categoria Editada ${response.data.name}`, "success");
-                    console.log("edited category!", response);
-                    const updatedCat = response.data;
+        // Find the row being edited
+        const $row = categoryModule.categoryTable.rows().nodes().toArray().find(row => {
+            return categoryModule.categoryTable.row(row).data().id === catId;
+        });
 
-                    const rowIndexes = categoryModule.categoryTable
-                        .rows()
-                        .indexes()
-                        .filter(function (idx) {
-                            return categoryModule.categoryTable.row(idx).data().id === updatedCat.id;
-                        })
-
-                    if (rowIndexes.length) {
-                        categoryModule.categoryTable
-                            .row(rowIndexes[0])
-                            .data(updatedCat)
-                            .draw(false);
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Éxito',
-                            text: 'Tabla actualizada correctamente',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000
-                        });
-
-                    }
-                } else if (response.status === 500 && response.error.includes("write lock")) {
-                    Swal.fire({
-                        icon: "info",
-                        title: "Oh! 🤓",
-                        html: `Parece que alguien editó primero esta categoría; intentalo de nuevo. <br> Dejame te traigo la info mas actualizada!`,
-                        showConfirmButton: false,
-                        timer: 5000,
-                        timerProgressBar: true,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    })
-                    google.script.run
-                        .withSuccessHandler((r) => {
-                            r = JSON.parse(r);
-                            if (r.status === 200) {
-
-                                $("#editCategoryName").val(r.data.name);
-                                // Adjust according to how you store the date:
-                                $("#editCategoryDate").val(r.data.created_at.substr(0, 10));
-                                // 3) Now the user can see the most recent changes
-                                //    and try saving again if desired.
-                                const updatedCat = r.data;
-
-                                const rowIndexes = categoryModule.categoryTable
-                                    .rows()
-                                    .indexes()
-                                    .filter(function (idx) {
-                                        return categoryModule.categoryTable.row(idx).data().id === updatedCat.id;
-                                    })
-
-                                if (rowIndexes.length) {
-                                    categoryModule.categoryTable
-                                        .row(rowIndexes[0])
-                                        .data(updatedCat)
-                                        .draw(false);
-
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Éxito',
-                                        text: 'Tabla actualizada correctamente',
-                                        toast: true,
-                                        position: 'top-end',
-                                        showConfirmButton: false,
-                                        timer: 3000
-                                    });
-                                }
-                                console.log("Refreshed data for category", r.data);
-                            } else if (r.status === 500) {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Jmm...🤔',
-                                    text: 'Parece que este registro ya no existe! <br> Dejame Actualizo la informacion.',
-                                    showConfirmButton: false,
-                                    didOpen: () => {
-                                        Swal.showLoading();
-                                    }
-                                });
-                                loadCategories();
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Éxito',
-                                    text: 'Tabla actualizada correctamente',
-                                    toast: true,
-                                    position: 'top-end',
-                                    showConfirmButton: false,
-                                    timer: 3000
-                                });
-                                console.warn("Unable to refresh category data", r);
-                            }
-                        })
-                        .readCategoryById(catId);
-                } else {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Jmm...🤔',
-                        text: 'Parece que este registro ya no existe! <br> Dejame Actualizo la informacion.',
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                    loadCategories();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Éxito',
-                        text: 'Tabla actualizada correctamente',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000
-                    });
-                    console.warn("Unable to refresh category data", r);
-                }
-
-            })
-            .updateCategory({name: catName, created_at: catDate}, catId);
+        manageConcurrencyEditDelete({
+            operation: 'edition',
+            entity: 'categoria',
+            fields: {
+                '#editCategoryName': 'name',
+                '#editCategoryDate': 'created_at'
+            },
+            id: catId,
+            updatedData: { name: catName, created_at: catDate },
+            dataTable: categoryModule.categoryTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadCategories,
+            scriptConfig: {
+                mainFunction: 'updateCategory',
+                readRecordFunc: 'readCategoryById',
+                requiresObject: true
+            }
+        });
 
         console.log("Updating category:", catId, catName, catDate);
     });
@@ -264,88 +160,20 @@
         const $row = $(this).closest("tr");
         const rowData = categoryModule.categoryTable.row($row).data();
         console.log("Deleting category:", catId, rowData);
-        defaultLoadingSwalToast("elimino la categoria!")
-        google.script.run
-            .withSuccessHandler((response) => {
-                response = JSON.parse(response);
-                console.log(response);
-                if (response.status === 200) {
-                    categoryModule.categoryTable
-                        .row($row)
-                        .remove()
-                        .draw(false);
-                    Swal.fire("Exito!", `Categoria Eliminada: ${rowData.name}`, "success");
-                } else if (response.status === 500 & response.error.includes("write lock")) {
-                    Swal.fire({
-                        icon: "info",
-                        title: "Oh! 🤓",
-                        html: `Parece que alguien edito/elimino primero esta categoría; intentalo de nuevo. <br> Dejame te traigo la info mas actualizada!`,
-                        showConfirmButton: false,
-                        timer: 5000,
-                        timerProgressBar: true,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    })
-                    google.script.run
-                        .withSuccessHandler((r) => {
-                            r = JSON.parse(r);
-                            if (r.status === 200) {
-                                //    and try saving again if desired.
-                                const updatedCat = r.data;
 
-                                const rowIndexes = categoryModule.categoryTable
-                                    .rows()
-                                    .indexes()
-                                    .filter(function (idx) {
-                                        return categoryModule.categoryTable.row(idx).data().id === updatedCat.id;
-                                    })
-
-                                if (rowIndexes.length) {
-                                    categoryModule.categoryTable
-                                        .row(rowIndexes[0])
-                                        .data(updatedCat)
-                                        .draw(false);
-
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Éxito',
-                                        text: 'Tabla actualizada correctamente',
-                                        toast: true,
-                                        position: 'top-end',
-                                        showConfirmButton: false,
-                                        timer: 3000
-                                    });
-                                }
-                                console.log("Refreshed data for category", r.data);
-                            } else if (r.status === 500) {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Jmm...🤔',
-                                    text: 'Parece que este registro ya no existe! <br> Dejame Actualizo la informacion.',
-                                    showConfirmButton: false,
-                                    didOpen: () => {
-                                        Swal.showLoading();
-                                    }
-                                });
-                                loadCategories();
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Éxito',
-                                    text: 'Tabla actualizada correctamente',
-                                    toast: true,
-                                    position: 'top-end',
-                                    showConfirmButton: false,
-                                    timer: 3000
-                                });
-                                console.warn("Unable to refresh category data", r);
-                            }
-                        })
-                        .readCategoryById(catId);
-                } else {
-                    Swal.fire("Error", "No se pudo eliminar la categoría", "error");
-                }
-            }).removeCategory(catId)
+        manageConcurrencyEditDelete({
+            operation: 'removing',
+            entity: 'categoria',
+            id: catId,
+            dataTable: categoryModule.categoryTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadCategories,
+            scriptConfig: {
+                mainFunction: 'removeCategory',
+                readRecordFunc: 'readCategoryById',
+                requiresObject: false
+            }
+        });
     })
     $("#categoryTable").on("click", ".readCategory", function () {
       const $row = $(this).closest("tr");
@@ -608,147 +436,30 @@
         const orderId = orderModule.currentRow.id;
         const orderCustomer = $("#editOrderCustomer").val();
         const orderDate = $("#editOrderDate").val();
-        defaultLoadingSwalToast("Editando la orden...");
 
-        google.script.run
-            .withSuccessHandler((response) => {
-                response = JSON.parse(response);
+        // Find the row being edited
+        const $row = orderModule.orderTable.rows().nodes().toArray().find(row => {
+            return orderModule.orderTable.row(row).data().id === orderId;
+        });
 
-                if (response.status === 200) {
-                    Swal.fire("Éxito!", `Orden editada correctamente`, "success");
-                    console.log("edited order!", response);
-
-                    const updatedOrder = response.data;
-                    // Update the row in the DataTable
-                    const rowIndexes = orderModule.orderTable
-                        .rows()
-                        .indexes()
-                        .filter(function (idx) {
-                            return (
-                                orderModule.orderTable.row(idx).data().id === updatedOrder.id
-                            );
-                        });
-
-                    if (rowIndexes.length) {
-                        orderModule.orderTable
-                            .row(rowIndexes[0])
-                            .data(updatedOrder)
-                            .draw(false);
-
-                        Swal.fire({
-                            icon: "success",
-                            title: "Éxito",
-                            text: "Tabla actualizada correctamente",
-                            toast: true,
-                            position: "top-end",
-                            showConfirmButton: false,
-                            timer: 3000,
-                        });
-                    }
-                } else if (
-                    response.status === 500 &&
-                    response.error &&
-                    response.error.includes("write lock")
-                ) {
-                    // Another user has edited it first
-                    Swal.fire({
-                        icon: "info",
-                        title: "Oh! 🤓",
-                        html: `Parece que alguien editó primero esta Orden; intentalo de nuevo. <br> Dejame te traigo la info más actualizada!`,
-                        showConfirmButton: false,
-                        timer: 5000,
-                        timerProgressBar: true,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        },
-                    });
-
-                    // Re-fetch the latest data
-                    google.script.run
-                        .withSuccessHandler((r) => {
-                            r = JSON.parse(r);
-                            if (r.status === 200) {
-                                $("#editOrderCustomer").val(r.data.customer_fk);
-                                $("#editOrderDate").val(r.data.created_at.substr(0, 10));
-
-                                // Update row in the DataTable
-                                const updatedOrder = r.data;
-                                const rowIndexes = orderModule.orderTable
-                                    .rows()
-                                    .indexes()
-                                    .filter(function (idx) {
-                                        return (
-                                            orderModule.orderTable.row(idx).data().id ===
-                                            updatedOrder.id
-                                        );
-                                    });
-
-                                if (rowIndexes.length) {
-                                    orderModule.orderTable
-                                        .row(rowIndexes[0])
-                                        .data(updatedOrder)
-                                        .draw(false);
-
-                                    Swal.fire({
-                                        icon: "success",
-                                        title: "Éxito",
-                                        text: "Tabla actualizada correctamente",
-                                        toast: true,
-                                        position: "top-end",
-                                        showConfirmButton: false,
-                                        timer: 3000,
-                                    });
-                                }
-                            } else {
-                                // The record no longer exists or something else went wrong
-                                Swal.fire({
-                                    icon: "warning",
-                                    title: "Jmm...🤔",
-                                    html: "Parece que este registro ya no existe.<br> Dejame actualizo la información.",
-                                    showConfirmButton: false,
-                                    didOpen: () => {
-                                        Swal.showLoading();
-                                    },
-                                });
-                                loadOrders();
-                                Swal.fire({
-                                    icon: "success",
-                                    title: "Éxito",
-                                    text: "Tabla actualizada correctamente",
-                                    toast: true,
-                                    position: "top-end",
-                                    showConfirmButton: false,
-                                    timer: 3000,
-                                });
-                                console.warn("Unable to refresh order data", r);
-                            }
-                        })
-                        .readOrderById(orderId);
-                } else {
-                    // Possibly doesn't exist anymore
-                    Swal.fire({
-                        icon: "warning",
-                        title: "Jmm...🤔",
-                        html: "Parece que este registro ya no existe.<br> Dejame actualizo la información.",
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        },
-                    });
-                    loadOrders();
-                    Swal.fire({
-                        icon: "success",
-                        title: "Éxito",
-                        text: "Tabla actualizada correctamente",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    });
-                    console.warn("Unable to refresh order data", response);
-                }
-            })
-            .updateOrder({customer_fk: Number(orderCustomer), created_at: orderDate}, orderId);
+        manageConcurrencyEditDelete({
+            operation: 'edition',
+            entity: 'orden',
+            fields: {
+                '#editOrderCustomer': 'customer_fk',
+                '#editOrderDate': 'created_at'
+            },
+            id: orderId,
+            updatedData: { customer_fk: Number(orderCustomer), created_at: orderDate },
+            dataTable: orderModule.orderTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadOrders,
+            scriptConfig: {
+                mainFunction: 'updateOrder',
+                readRecordFunc: 'readOrderById',
+                requiresObject: true
+            }
+        });
 
         console.log("Updating order:", orderId, orderCustomer, orderDate);
     });
@@ -788,94 +499,19 @@
         const rowData = orderModule.orderTable.row($row).data();
         console.log("Deleting order:", orderId, rowData);
 
-        defaultLoadingSwalToast("Eliminando la orden...");
-
-        google.script.run
-            .withSuccessHandler((response) => {
-                response = JSON.parse(response);
-                console.log("deleteOrder response:", response);
-                if (response.status === 200) {
-                    // Remove from DataTable
-                    orderModule.orderTable.row($row).remove().draw(false);
-                    Swal.fire("Exito!", `Orden eliminada: ${rowData.id}`, "success");
-                } else if (
-                    response.status === 500 &&
-                    response.error &&
-                    response.error.includes("write lock")
-                ) {
-                    Swal.fire({
-                        icon: "info",
-                        title: "Oh! 🤓",
-                        html: `Parece que alguien editó/eliminó primero esta orden; intentalo de nuevo. <br> Te traigo la info más actualizada!`,
-                        showConfirmButton: false,
-                        timer: 5000,
-                        timerProgressBar: true,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        },
-                    });
-                    // Re-fetch to see if the record is still around
-                    google.script.run
-                        .withSuccessHandler((r) => {
-                            r = JSON.parse(r);
-                            if (r.status === 200) {
-                                // So it still exists, update row in table
-                                const updatedOrder = r.data;
-                                const rowIndexes = orderModule.orderTable
-                                    .rows()
-                                    .indexes()
-                                    .filter(function (idx) {
-                                        return (
-                                            orderModule.orderTable.row(idx).data().id ===
-                                            updatedOrder.id
-                                        );
-                                    });
-                                if (rowIndexes.length) {
-                                    orderModule.orderTable
-                                        .row(rowIndexes[0])
-                                        .data(updatedOrder)
-                                        .draw(false);
-                                    Swal.fire({
-                                        icon: "success",
-                                        title: "Éxito",
-                                        text: "Tabla actualizada correctamente",
-                                        toast: true,
-                                        position: "top-end",
-                                        showConfirmButton: false,
-                                        timer: 3000,
-                                    });
-                                }
-                                console.log("Refreshed data for order", r.data);
-                            } else {
-                                // Possibly no longer exists
-                                Swal.fire({
-                                    icon: "warning",
-                                    title: "Jmm...🤔",
-                                    text: "Parece que este registro ya no existe! <br> Actualizaré la información.",
-                                    showConfirmButton: false,
-                                    didOpen: () => {
-                                        Swal.showLoading();
-                                    },
-                                });
-                                loadOrders();
-                                Swal.fire({
-                                    icon: "success",
-                                    title: "Éxito",
-                                    text: "Tabla actualizada correctamente",
-                                    toast: true,
-                                    position: "top-end",
-                                    showConfirmButton: false,
-                                    timer: 3000,
-                                });
-                                console.warn("Unable to refresh order data", r);
-                            }
-                        })
-                        .readOrderById(orderId);
-                } else {
-                    Swal.fire("Error", "No se pudo eliminar la Orden", "error");
-                }
-            })
-            .removeOrder(orderId);
+        manageConcurrencyEditDelete({
+            operation: 'removing',
+            entity: 'orden',
+            id: orderId,
+            dataTable: orderModule.orderTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadOrders,
+            scriptConfig: {
+                mainFunction: 'removeOrder',
+                readRecordFunc: 'readOrderById',
+                requiresObject: false
+            }
+        });
     });
 
     /****************************************************
@@ -1007,7 +643,6 @@
     // Handle EDIT form submission
     $("#editProductForm").on("submit", function (e) {
         e.preventDefault();
-        defaultLoadingSwalToast("Editando producto...");
 
         // The ID from the hidden input or from productModule.currentRow
         const prodId = $("#editProductId").val();
@@ -1018,120 +653,36 @@
         const prodCatId = $("#editProductCategoryFk").val();
         const prodDate = $("#editProductDate").val();
 
-        google.script.run
-            .withSuccessHandler((response) => {
-                response = JSON.parse(response);
-                if (response.status === 200) {
-                    Swal.fire("Éxito!", "Producto editado correctamente", "success");
-                    const updatedProduct = response.data;
+        // Find the row being edited
+        const $row = productModule.productTable.rows().nodes().toArray().find(row => {
+            return productModule.productTable.row(row).data().id == prodId;
+        });
 
-                    // Update row in DataTable
-                    const rowIndexes = productModule.productTable
-                        .rows()
-                        .indexes()
-                        .filter(function (idx) {
-                            return productModule.productTable.row(idx).data().id === updatedProduct.id;
-                        });
-
-                    if (rowIndexes.length) {
-                        productModule.productTable
-                            .row(rowIndexes[0])
-                            .data(updatedProduct)
-                            .draw(false);
-
-                        Swal.fire({
-                            icon: "success",
-                            title: "Éxito",
-                            text: "Tabla actualizada correctamente",
-                            toast: true,
-                            position: "top-end",
-                            showConfirmButton: false,
-                            timer: 3000,
-                        });
-                    }
-                } else if (
-                    response.status === 500 &&
-                    response.error &&
-                    response.error.includes("write lock")
-                ) {
-                    // concurrency error => fetch updated data
-                    Swal.fire({
-                        icon: "info",
-                        title: "Oh! 🤓",
-                        html: `Parece que alguien ya modificó este producto; intente de nuevo. 
-                      <br/> Traeré la info más actualizada...`,
-                        showConfirmButton: false,
-                        timer: 5000,
-                        timerProgressBar: true,
-                        didOpen: () => Swal.showLoading(),
-                    });
-                    // Re-fetch the product
-                    google.script.run
-                        .withSuccessHandler((r) => {
-                            r = JSON.parse(r);
-                            if (r.status === 200) {
-                                // Update form & table
-                                $("#editProductName").val(r.data.name);
-                                $("#editProductPrice").val(r.data.price);
-                                $("#editProductCategoryFk").val(r.data.category_fk).trigger("change");
-                                $("#editProductDate").val(r.data.created_at?.substr(0, 10));
-
-                                const rowIndexes = productModule.productTable
-                                    .rows()
-                                    .indexes()
-                                    .filter(function (idx) {
-                                        return productModule.productTable.row(idx).data().id === r.data.id;
-                                    });
-
-                                if (rowIndexes.length) {
-                                    productModule.productTable
-                                        .row(rowIndexes[0])
-                                        .data(r.data)
-                                        .draw(false);
-                                }
-                                Swal.fire({
-                                    icon: "success",
-                                    title: "Actualizado",
-                                    text: "Tabla y formulario se han actualizado",
-                                    toast: true,
-                                    position: "top-end",
-                                    showConfirmButton: false,
-                                    timer: 3000,
-                                });
-                            } else {
-                                // If it no longer exists
-                                Swal.fire({
-                                    icon: "warning",
-                                    title: "Jmm...🤔",
-                                    html: "Parece que este registro ya no existe. Recargaré la lista.",
-                                    showConfirmButton: false,
-                                    didOpen: () => Swal.showLoading(),
-                                });
-                                loadProducts();
-                            }
-                        })
-                        .readProductById(prodId);
-                } else {
-                    // Possibly record no longer exists
-                    Swal.fire({
-                        icon: "warning",
-                        title: "Jmm...🤔",
-                        html: "Parece que este registro ya no existe.<br> Actualizo la información.",
-                        showConfirmButton: false,
-                        didOpen: () => Swal.showLoading(),
-                    });
-                    loadProducts();
-                }
-            })
-            .updateProduct(
-                {
-                    name: prodName,
-                    price: parseFloat(prodPrice),
-                    category_fk: Number(prodCatId),
-                    created_at: prodDate,
-                },
-                prodId
-            );
+        manageConcurrencyEditDelete({
+            operation: 'edition',
+            entity: 'producto',
+            fields: {
+                '#editProductName': 'name',
+                '#editProductPrice': 'price',
+                '#editProductCategoryFk': 'category_fk',
+                '#editProductDate': 'created_at'
+            },
+            id: prodId,
+            updatedData: {
+                name: prodName,
+                price: parseFloat(prodPrice),
+                category_fk: Number(prodCatId),
+                created_at: prodDate
+            },
+            dataTable: productModule.productTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadProducts,
+            scriptConfig: {
+                mainFunction: 'updateProduct',
+                readRecordFunc: 'readProductById',
+                requiresObject: true
+            }
+        });
     });
 
     /****************************************************
@@ -1170,75 +721,20 @@
         const rowData = productModule.productTable.row($row).data();
 
         console.log("Deleting product:", prodId, rowData);
-        defaultLoadingSwalToast("Eliminando producto...");
 
-        google.script.run
-            .withSuccessHandler((response) => {
-                response = JSON.parse(response);
-                console.log("deleteProduct response:", response);
-                if (response.status === 200) {
-                    productModule.productTable.row($row).remove().draw(false);
-                    Swal.fire("Éxito!", `Producto eliminado: ${rowData.name}`, "success");
-                } else if (
-                    response.status === 500 &&
-                    response.error &&
-                    response.error.includes("write lock")
-                ) {
-                    Swal.fire({
-                        icon: "info",
-                        title: "Oh! 🤓",
-                        html: `Alguien más editó/eliminó este producto; intentando recargar...`,
-                        showConfirmButton: false,
-                        timer: 5000,
-                        timerProgressBar: true,
-                        didOpen: () => Swal.showLoading(),
-                    });
-                    // Re-fetch the product
-                    google.script.run
-                        .withSuccessHandler((r) => {
-                            r = JSON.parse(r);
-                            if (r.status === 200) {
-                                // Still exists => update the row
-                                const updatedProd = r.data;
-                                const rowIndexes = productModule.productTable
-                                    .rows()
-                                    .indexes()
-                                    .filter(function (idx) {
-                                        return productModule.productTable.row(idx).data().id === updatedProd.id;
-                                    });
-                                if (rowIndexes.length) {
-                                    productModule.productTable
-                                        .row(rowIndexes[0])
-                                        .data(updatedProd)
-                                        .draw(false);
-                                    Swal.fire({
-                                        icon: "success",
-                                        title: "Actualizado",
-                                        text: "Tabla actualizada correctamente",
-                                        toast: true,
-                                        position: "top-end",
-                                        showConfirmButton: false,
-                                        timer: 3000,
-                                    });
-                                }
-                            } else {
-                                // Possibly deleted
-                                Swal.fire({
-                                    icon: "warning",
-                                    title: "Jmm...🤔",
-                                    html: "Registro ya no existe. Recargo la info.",
-                                    showConfirmButton: false,
-                                    didOpen: () => Swal.showLoading(),
-                                });
-                                loadProducts();
-                            }
-                        })
-                        .readProductById(prodId);
-                } else {
-                    Swal.fire("Error", "No se pudo eliminar el producto", "error");
-                }
-            })
-            .removeProduct(prodId);
+        manageConcurrencyEditDelete({
+            operation: 'removing',
+            entity: 'producto',
+            id: prodId,
+            dataTable: productModule.productTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadProducts,
+            scriptConfig: {
+                mainFunction: 'removeProduct',
+                readRecordFunc: 'readProductById',
+                requiresObject: false
+            }
+        });
     });
 
     /****************************************************
@@ -1414,7 +910,6 @@
      ****************************************************/
     $("#editCustomerForm").on("submit", function (e) {
         e.preventDefault();
-        defaultLoadingSwalToast("Editando cliente...");
 
         // The ID from the hidden input or from currentRow
         const custId = $("#editCustomerId").val();
@@ -1426,129 +921,39 @@
         const address = $("#editCustomerAddress").val();
         const dateCreated = $("#editCustomerDate").val();
 
-        google.script.run
-            .withSuccessHandler((response) => {
-                response = JSON.parse(response);
-                if (response.status === 200) {
-                    Swal.fire("Éxito!", "Cliente editado correctamente", "success");
-                    const updatedCustomer = response.data;
+        // Find the row being edited
+        const $row = customerModule.customerTable.rows().nodes().toArray().find(row => {
+            return customerModule.customerTable.row(row).data().id == custId;
+        });
 
-                    // Update row in DataTable
-                    const rowIndexes = customerModule.customerTable
-                        .rows()
-                        .indexes()
-                        .filter(function (idx) {
-                            return (
-                                customerModule.customerTable.row(idx).data().id === updatedCustomer.id
-                            );
-                        });
-
-                    if (rowIndexes.length) {
-                        customerModule.customerTable
-                            .row(rowIndexes[0])
-                            .data(updatedCustomer)
-                            .draw(false);
-
-                        Swal.fire({
-                            icon: "success",
-                            title: "Éxito",
-                            text: "Tabla actualizada correctamente",
-                            toast: true,
-                            position: "top-end",
-                            showConfirmButton: false,
-                            timer: 3000,
-                        });
-                    }
-                } else if (
-                    response.status === 500 &&
-                    response.error &&
-                    response.error.includes("write lock")
-                ) {
-                    // concurrency => re-fetch updated data
-                    Swal.fire({
-                        icon: "info",
-                        title: "Oh! 🤓",
-                        html: `Parece que alguien ya modificó este cliente; intente de nuevo. 
-                        <br/> Traeré la info más actualizada...`,
-                        showConfirmButton: false,
-                        timer: 5000,
-                        timerProgressBar: true,
-                        didOpen: () => Swal.showLoading(),
-                    });
-
-                    // Re-fetch the customer
-                    google.script.run
-                        .withSuccessHandler((r) => {
-                            r = JSON.parse(r);
-                            if (r.status === 200) {
-                                // Update form & table
-                                $("#editCustomerFirstName").val(r.data.first_name);
-                                $("#editCustomerLastName").val(r.data.last_name);
-                                $("#editCustomerEmail").val(r.data.email);
-                                $("#editCustomerAddress").val(r.data.address);
-                                $("#editCustomerDate").val(
-                                    r.data.created_at ? r.data.created_at.substr(0, 10) : ""
-                                );
-
-                                const rowIndexes = customerModule.customerTable
-                                    .rows()
-                                    .indexes()
-                                    .filter(function (idx) {
-                                        return (
-                                            customerModule.customerTable.row(idx).data().id === r.data.id
-                                        );
-                                    });
-
-                                if (rowIndexes.length) {
-                                    customerModule.customerTable
-                                        .row(rowIndexes[0])
-                                        .data(r.data)
-                                        .draw(false);
-                                }
-                                Swal.fire({
-                                    icon: "success",
-                                    title: "Actualizado",
-                                    text: "Tabla y formulario se han actualizado",
-                                    toast: true,
-                                    position: "top-end",
-                                    showConfirmButton: false,
-                                    timer: 3000,
-                                });
-                            } else {
-                                // Possibly doesn't exist
-                                Swal.fire({
-                                    icon: "warning",
-                                    title: "Jmm...🤔",
-                                    html: "Parece que este registro ya no existe. Recargaré la lista.",
-                                    showConfirmButton: false,
-                                    didOpen: () => Swal.showLoading(),
-                                });
-                                loadCustomers();
-                            }
-                        })
-                        .readCustomerById(custId);
-                } else {
-                    // Possibly doesn't exist
-                    Swal.fire({
-                        icon: "warning",
-                        title: "Jmm...🤔",
-                        html: "Parece que este registro ya no existe.<br> Actualizo la información.",
-                        showConfirmButton: false,
-                        didOpen: () => Swal.showLoading(),
-                    });
-                    loadCustomers();
-                }
-            }).updateCustomer(
-                {
-                    first_name: firstName,
-                    last_name: lastName,
-                    email: email,
-                    address: address,
-                    created_at: dateCreated,
-                },
-                custId
-            );
-        }); 
+        manageConcurrencyEditDelete({
+            operation: 'edition',
+            entity: 'cliente',
+            fields: {
+                '#editCustomerFirstName': 'first_name',
+                '#editCustomerLastName': 'last_name',
+                '#editCustomerEmail': 'email',
+                '#editCustomerAddress': 'address',
+                '#editCustomerDate': 'created_at'
+            },
+            id: custId,
+            updatedData: {
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                address: address,
+                created_at: dateCreated
+            },
+            dataTable: customerModule.customerTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadCustomers,
+            scriptConfig: {
+                mainFunction: 'updateCustomer',
+                readRecordFunc: 'readCustomerById',
+                requiresObject: true
+            }
+        });
+    }); 
             
 
 
@@ -1587,80 +992,20 @@
             const rowData = customerModule.customerTable.row($row).data();
 
             console.log("Deleting customer:", custId, rowData);
-            defaultLoadingSwalToast("Eliminando cliente...");
 
-            google.script.run
-                .withSuccessHandler((response) => {
-                    response = JSON.parse(response);
-                    console.log("deleteCustomer response:", response);
-                    if (response.status === 200) {
-                        // Remove from DataTable
-                        customerModule.customerTable.row($row).remove().draw(false);
-                        Swal.fire("Éxito!", `Cliente eliminado: ${rowData.first_name}`, "success");
-                    } else if (
-                        response.status === 500 &&
-                        response.error &&
-                        response.error.includes("write lock")
-                    ) {
-                        // concurrency => re-fetch
-                        Swal.fire({
-                            icon: "info",
-                            title: "Oh! 🤓",
-                            html: `Alguien más editó/eliminó este cliente; intentando recargar...`,
-                            showConfirmButton: false,
-                            timer: 5000,
-                            timerProgressBar: true,
-                            didOpen: () => Swal.showLoading(),
-                        });
-
-                        google.script.run
-                            .withSuccessHandler((r) => {
-                                r = JSON.parse(r);
-                                if (r.status === 200) {
-                                    // Still exists => update the row
-                                    const updatedCust = r.data;
-                                    const rowIndexes = customerModule.customerTable
-                                        .rows()
-                                        .indexes()
-                                        .filter(function (idx) {
-                                            return (
-                                                customerModule.customerTable.row(idx).data().id === updatedCust.id
-                                            );
-                                        });
-                                    if (rowIndexes.length) {
-                                        customerModule.customerTable
-                                            .row(rowIndexes[0])
-                                            .data(updatedCust)
-                                            .draw(false);
-
-                                        Swal.fire({
-                                            icon: "success",
-                                            title: "Actualizado",
-                                            text: "Tabla actualizada correctamente",
-                                            toast: true,
-                                            position: "top-end",
-                                            showConfirmButton: false,
-                                            timer: 3000,
-                                        });
-                                    }
-                                } else {
-                                    // Possibly deleted
-                                    Swal.fire({
-                                        icon: "warning",
-                                        title: "Jmm...🤔",
-                                        html: "Registro ya no existe. Recargo la info.",
-                                        showConfirmButton: false,
-                                        didOpen: () => Swal.showLoading(),
-                                    });
-                                    loadCustomers();
-                                }
-                            })
-                            .readCustomerById(custId);
-                    } else {
-                        Swal.fire("Error", "No se pudo eliminar el cliente", "error");
-                    }
-                })
-                .removeCustomer(custId);
+            manageConcurrencyEditDelete({
+                operation: 'removing',
+                entity: 'cliente',
+                id: custId,
+                dataTable: customerModule.customerTable,
+                $dataTableRow: $row,
+                reloaderFunc: loadCustomers,
+                scriptConfig: {
+                    mainFunction: 'removeCustomer',
+                    readRecordFunc: 'readCustomerById',
+                    requiresObject: false
+                }
+            });
         });
       $("#customerTable").on("click", ".readCustomer", function () {
       const $row = $(this).closest("tr");
@@ -1893,7 +1238,6 @@
        ****************************************************/
       $("#editOrderDetailForm").on("submit", function(e){
         e.preventDefault();
-        defaultLoadingSwalToast("Editando detalle...");
 
         const detailId = $("#editOrderDetailId").val();
         const orderId = $("#editOrderFk").val();
@@ -1901,116 +1245,36 @@
         const quantity = $("#editOrderDetailQuantity").val();
         const createdAt = $("#editOrderDetailDate").val();
 
-        google.script.run
-          .withSuccessHandler((response)=>{
-            response = JSON.parse(response);
-            if(response.status === 200){
-              Swal.fire("Éxito!", "Detalle editado correctamente", "success");
-              const updatedDetail = response.data;
+        // Find the row being edited
+        const $row = orderDetailModule.orderDetailTable.rows().nodes().toArray().find(row => {
+            return orderDetailModule.orderDetailTable.row(row).data().id == detailId;
+        });
 
-              // Update row in DataTable
-              const rowIndexes = orderDetailModule.orderDetailTable
-                .rows()
-                .indexes()
-                .filter(function(idx){
-                  return orderDetailModule.orderDetailTable.row(idx).data().id === updatedDetail.id;
-                });
-              
-              if (rowIndexes.length){
-                orderDetailModule.orderDetailTable
-                  .row(rowIndexes[0])
-                  .data(updatedDetail)
-                  .draw(false);
-
-                Swal.fire({
-                  icon: "success",
-                  title: "Éxito",
-                  text: "Tabla actualizada correctamente",
-                  toast: true,
-                  position: "top-end",
-                  showConfirmButton: false,
-                  timer: 3000,
-                });
-              }
-            } else if(response.status === 500 && response.error && response.error.includes("write lock")){
-              // concurrency => re-fetch
-              Swal.fire({
-                icon: "info",
-                title: "Oh! 🤓",
-                html: `Parece que alguien ya modificó este detalle; intente de nuevo. 
-                      <br/> Traeré la info más actualizada...`,
-                showConfirmButton: false,
-                timer: 5000,
-                timerProgressBar: true,
-                didOpen: ()=> Swal.showLoading(),
-              });
-
-              google.script.run
-                .withSuccessHandler((r)=>{
-                  r = JSON.parse(r);
-                  if(r.status === 200){
-                    // update form & table
-                    $("#editOrderFk").val(r.data.order_id).trigger("change");
-                    $("#editProductFk").val(r.data.product_id).trigger("change");
-                    $("#editOrderDetailQuantity").val(r.data.quantity);
-                    $("#editOrderDetailDate").val(r.data.created_at?.substr(0,10));
-
-                    const rowIndexes = orderDetailModule.orderDetailTable
-                      .rows()
-                      .indexes()
-                      .filter(function(idx){
-                        return orderDetailModule.orderDetailTable.row(idx).data().id === r.data.id;
-                      });
-                    
-                    if(rowIndexes.length){
-                      orderDetailModule.orderDetailTable
-                        .row(rowIndexes[0])
-                        .data(r.data)
-                        .draw(false);
-                    }
-                    Swal.fire({
-                      icon: "success",
-                      title: "Actualizado",
-                      text: "Tabla y formulario se han actualizado",
-                      toast: true,
-                      position: "top-end",
-                      showConfirmButton: false,
-                      timer: 3000,
-                    });
-                  } else {
-                    // no longer exists
-                    Swal.fire({
-                      icon: "warning",
-                      title: "Jmm...🤔",
-                      html: "Parece que este detalle ya no existe. Recargaré la lista.",
-                      showConfirmButton: false,
-                      didOpen: ()=> Swal.showLoading(),
-                    });
-                    loadOrderDetails();
-                  }
-                })
-                .readOrderDetailById(detailId);
-            } else {
-              // Possibly doesn't exist
-              Swal.fire({
-                icon: "warning",
-                title: "Jmm...🤔",
-                html: "Parece que este registro ya no existe.<br> Actualizo la información.",
-                showConfirmButton: false,
-                didOpen: ()=> Swal.showLoading(),
-              });
-              loadOrderDetails();
-            }
-          })
-          .updateOrderDetail(
-            {
-              order_id: Number(orderId),
-              product_id: Number(productId),
-              quantity: parseInt(quantity),
-              created_at: createdAt,
+        manageConcurrencyEditDelete({
+            operation: 'edition',
+            entity: 'detalle',
+            fields: {
+                '#editOrderFk': 'order_id',
+                '#editProductFk': 'product_id',
+                '#editOrderDetailQuantity': 'quantity',
+                '#editOrderDetailDate': 'created_at'
             },
-            detailId
-          );
+            id: detailId,
+            updatedData: {
+                order_id: Number(orderId),
+                product_id: Number(productId),
+                quantity: parseInt(quantity),
+                created_at: createdAt
+            },
+            dataTable: orderDetailModule.orderDetailTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadOrderDetails,
+            scriptConfig: {
+                mainFunction: 'updateOrderDetail',
+                readRecordFunc: 'readOrderDetailById',
+                requiresObject: true
+            }
+        });
       });
 
       /****************************************************
@@ -2051,71 +1315,20 @@
         const rowData = orderDetailModule.orderDetailTable.row($row).data();
 
         console.log("Deleting detail:", detailId, rowData);
-        defaultLoadingSwalToast("Eliminando detalle...");
 
-        google.script.run
-          .withSuccessHandler((response)=>{
-            response = JSON.parse(response);
-            console.log("deleteOrderDetail response:", response);
-            if(response.status === 200){
-              orderDetailModule.orderDetailTable.row($row).remove().draw(false);
-              Swal.fire("Éxito!", `Detalle eliminado: ${rowData.id}`, "success");
-            } else if(response.status === 500 && response.error && response.error.includes("write lock")){
-              Swal.fire({
-                icon: "info",
-                title: "Oh! 🤓",
-                html: `Alguien más editó/eliminó este detalle; intentando recargar...`,
-                showConfirmButton: false,
-                timer: 5000,
-                timerProgressBar: true,
-                didOpen: ()=> Swal.showLoading(),
-              });
-
-              google.script.run
-                .withSuccessHandler((r)=>{
-                  r = JSON.parse(r);
-                  if(r.status === 200){
-                    // update row
-                    const updatedDetail = r.data;
-                    const rowIndexes = orderDetailModule.orderDetailTable
-                      .rows()
-                      .indexes()
-                      .filter(function(idx){
-                        return orderDetailModule.orderDetailTable.row(idx).data().id === updatedDetail.id;
-                      });
-                    if(rowIndexes.length){
-                      orderDetailModule.orderDetailTable
-                        .row(rowIndexes[0])
-                        .data(updatedDetail)
-                        .draw(false);
-                      Swal.fire({
-                        icon: "success",
-                        title: "Actualizado",
-                        text: "Tabla actualizada correctamente",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                      });
-                    }
-                  } else {
-                    // possibly deleted
-                    Swal.fire({
-                      icon: "warning",
-                      title: "Jmm...🤔",
-                      html: "Registro ya no existe. Recargo la info.",
-                      showConfirmButton: false,
-                      didOpen: ()=> Swal.showLoading(),
-                    });
-                    loadOrderDetails();
-                  }
-                })
-                .readOrderDetailById(detailId);
-            } else {
-              Swal.fire("Error", "No se pudo eliminar el detalle", "error");
+        manageConcurrencyEditDelete({
+            operation: 'removing',
+            entity: 'detalle',
+            id: detailId,
+            dataTable: orderDetailModule.orderDetailTable,
+            $dataTableRow: $row,
+            reloaderFunc: loadOrderDetails,
+            scriptConfig: {
+                mainFunction: 'removeOrderDetail',
+                readRecordFunc: 'readOrderDetailById',
+                requiresObject: false
             }
-          })
-          .removeOrderDetail(detailId);
+        });
       });
 
     /**

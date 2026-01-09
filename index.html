@@ -268,7 +268,7 @@
                         class="form-control"
                         id="createCategoryName"
                         placeholder="Ej: Electrónicos"
-                        required
+                        
                       />
                           </div>
 
@@ -1366,6 +1366,10 @@
   <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
   <script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <!-- Concurrency management utility -->
+  <?!= include("concurrency-utility.js");?>
+
+  <!-- Main application logic -->
   <?!= include("main.js");?>
 </body>
 

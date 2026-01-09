@@ -1,0 +1,2318 @@
+<script>
+  $(document).ready(function () {
+    const $modules = $(".module");
+    $(".offcanvas-body").on("click", "li.nav-item", function () {
+        $(".nav-item").removeClass("active");
+        $(this).addClass("active");
+
+        $modules.hide();
+
+        const moduleId = $(this).attr("data-module");
+        $(`#${moduleId}`).show();
+    })
+
+    const categoryModule = {
+        categoryTable: null,
+        currentRow: null,
+    }
+
+    function initCategoryTable() {
+        categoryModule.categoryTable = $("#categoryTable").DataTable({
+            responsive: true,
+            language: {
+                "lengthMenu": "Mostrar _MENU_ categorias por página",
+                "zeroRecords": "No se encontraron registros",
+            },
+            columns: [
+                {
+                    data: "id",
+                    render: function (data, type, row) {
+                        return `
+                      <div class="btn-group" role="group">
+                        <button class="btn-custom btn-warning btn-rounded editCategory" data-id="${data}">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn-custom btn-danger btn-rounded deleteCategory" data-id="${data}">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                        <button type="button" class="btn-custom btn-info btn-rounded readCategory" data-id="${data}">
+                          <i class="bi bi-info-circle-fill"></i>
+                        </button>
+                      </div>`;
+                    }
+                },
+                {data: "date"},
+                {data: "name"},
+                {data: "created_at"}
+            ],
+            columnDefs: [
+                {className: "text-center", targets: "_all"}
+            ]
+        })
+    }
+
+    function loadCategories() {
+        google.script.run
+            .withSuccessHandler(handleCategoriesLoaded)
+            .withFailureHandler((error) => defaultSwalErr("cargar categorias", error))
+            .readCategoryTable();
+    }
+
+    function handleCategoriesLoaded(response) {
+        const data = JSON.parse(response);
+        console.log("loaded", data.data.length, "categories");
+        categoryModule.categoryTable.clear().rows.add(data.data).draw();
+    }
+
+    function initCategoryManagement() {
+        if (categoryModule.categoryTable) {
+            categoryModule.categoryTable.destroy();
+        }
+        initCategoryTable();
+        loadCategories();
+    }
+
+    initCategoryManagement();
+
+    $("#refreshCategoryTable").click(function () {
+        defaultLoadingSwalToast("traigo nueva info!")
+        loadCategories();
+    })
+
+    $("#createNewCategory").click(function () {
+        $("#categoryModule").carousel(1);
+    })
+
+    $("#createCategoryForm").on("submit", function (e) {
+        e.preventDefault();
+        defaultLoadingSwalToast("creo la categoria!")
+        const newCatName = $("#createCategoryName").val();
+        const newCatDate = $("#createCategoryDate").val();
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                Swal.fire("Exito!", "Categoria Creada", "success");
+                response = JSON.parse(response);
+                console.log("created new category!", response);
+                // const newCategory = response.
+            })
+            .createCategory({name: newCatName, created_at: newCatDate});
+
+        console.log("Submitting new category:", newCatName, newCatDate);
+    });
+
+    $("#editCategoryForm").on("submit", function (e) {
+        e.preventDefault();
+
+        const catId = categoryModule.currentRow.id;
+        const catName = $("#editCategoryName").val();
+        const catDate = $("#editCategoryDate").val();
+        defaultLoadingSwalToast("edito la categoria!")
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                if (response.status === 200) {
+                    Swal.fire("Exito!", `Categoria Editada ${response.data.name}`, "success");
+                    console.log("edited category!", response);
+                    const updatedCat = response.data;
+
+                    const rowIndexes = categoryModule.categoryTable
+                        .rows()
+                        .indexes()
+                        .filter(function (idx) {
+                            return categoryModule.categoryTable.row(idx).data().id === updatedCat.id;
+                        })
+
+                    if (rowIndexes.length) {
+                        categoryModule.categoryTable
+                            .row(rowIndexes[0])
+                            .data(updatedCat)
+                            .draw(false);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: 'Tabla actualizada correctamente',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+
+                    }
+                } else if (response.status === 500 && response.error.includes("write lock")) {
+                    Swal.fire({
+                        icon: "info",
+                        title: "Oh! 🤓",
+                        html: `Parece que alguien editó primero esta categoría; intentalo de nuevo. <br> Dejame te traigo la info mas actualizada!`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    })
+                    google.script.run
+                        .withSuccessHandler((r) => {
+                            r = JSON.parse(r);
+                            if (r.status === 200) {
+
+                                $("#editCategoryName").val(r.data.name);
+                                // Adjust according to how you store the date:
+                                $("#editCategoryDate").val(r.data.created_at.substr(0, 10));
+                                // 3) Now the user can see the most recent changes
+                                //    and try saving again if desired.
+                                const updatedCat = r.data;
+
+                                const rowIndexes = categoryModule.categoryTable
+                                    .rows()
+                                    .indexes()
+                                    .filter(function (idx) {
+                                        return categoryModule.categoryTable.row(idx).data().id === updatedCat.id;
+                                    })
+
+                                if (rowIndexes.length) {
+                                    categoryModule.categoryTable
+                                        .row(rowIndexes[0])
+                                        .data(updatedCat)
+                                        .draw(false);
+
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Éxito',
+                                        text: 'Tabla actualizada correctamente',
+                                        toast: true,
+                                        position: 'top-end',
+                                        showConfirmButton: false,
+                                        timer: 3000
+                                    });
+                                }
+                                console.log("Refreshed data for category", r.data);
+                            } else if (r.status === 500) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Jmm...🤔',
+                                    text: 'Parece que este registro ya no existe! <br> Dejame Actualizo la informacion.',
+                                    showConfirmButton: false,
+                                    didOpen: () => {
+                                        Swal.showLoading();
+                                    }
+                                });
+                                loadCategories();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Éxito',
+                                    text: 'Tabla actualizada correctamente',
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 3000
+                                });
+                                console.warn("Unable to refresh category data", r);
+                            }
+                        })
+                        .readCategoryById(catId);
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Jmm...🤔',
+                        text: 'Parece que este registro ya no existe! <br> Dejame Actualizo la informacion.',
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    loadCategories();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: 'Tabla actualizada correctamente',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                    console.warn("Unable to refresh category data", r);
+                }
+
+            })
+            .updateCategory({name: catName, created_at: catDate}, catId);
+
+        console.log("Updating category:", catId, catName, catDate);
+    });
+
+    // Listen for clicks on the editCategory button in each table row
+    $("#categoryTable").on("click", ".editCategory", function () {
+        // Get the category ID from the data-id attribute
+        const catId = $(this).data("id");
+
+        currentRow = categoryModule.categoryTable.row($(this).closest("tr")).data();
+
+        console.log("Editing category:", catId, currentRow);
+
+        // Fill the "Edit Category" form fields
+        $("#editCategoryName").val(currentRow.name);
+        // Decide which date field you want to use (rowData.date or rowData.created_at)
+        $("#editCategoryDate").val(currentRow.created_at.substr(0, 10));
+
+        $("#categoryModule").carousel(2);
+    });
+
+    $("#categoryTable").on("click", ".deleteCategory", function () {
+        const catId = $(this).data("id");
+        const $row = $(this).closest("tr");
+        const rowData = categoryModule.categoryTable.row($row).data();
+        console.log("Deleting category:", catId, rowData);
+        defaultLoadingSwalToast("elimino la categoria!")
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                console.log(response);
+                if (response.status === 200) {
+                    categoryModule.categoryTable
+                        .row($row)
+                        .remove()
+                        .draw(false);
+                    Swal.fire("Exito!", `Categoria Eliminada: ${rowData.name}`, "success");
+                } else if (response.status === 500 & response.error.includes("write lock")) {
+                    Swal.fire({
+                        icon: "info",
+                        title: "Oh! 🤓",
+                        html: `Parece que alguien edito/elimino primero esta categoría; intentalo de nuevo. <br> Dejame te traigo la info mas actualizada!`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    })
+                    google.script.run
+                        .withSuccessHandler((r) => {
+                            r = JSON.parse(r);
+                            if (r.status === 200) {
+                                //    and try saving again if desired.
+                                const updatedCat = r.data;
+
+                                const rowIndexes = categoryModule.categoryTable
+                                    .rows()
+                                    .indexes()
+                                    .filter(function (idx) {
+                                        return categoryModule.categoryTable.row(idx).data().id === updatedCat.id;
+                                    })
+
+                                if (rowIndexes.length) {
+                                    categoryModule.categoryTable
+                                        .row(rowIndexes[0])
+                                        .data(updatedCat)
+                                        .draw(false);
+
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Éxito',
+                                        text: 'Tabla actualizada correctamente',
+                                        toast: true,
+                                        position: 'top-end',
+                                        showConfirmButton: false,
+                                        timer: 3000
+                                    });
+                                }
+                                console.log("Refreshed data for category", r.data);
+                            } else if (r.status === 500) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Jmm...🤔',
+                                    text: 'Parece que este registro ya no existe! <br> Dejame Actualizo la informacion.',
+                                    showConfirmButton: false,
+                                    didOpen: () => {
+                                        Swal.showLoading();
+                                    }
+                                });
+                                loadCategories();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Éxito',
+                                    text: 'Tabla actualizada correctamente',
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 3000
+                                });
+                                console.warn("Unable to refresh category data", r);
+                            }
+                        })
+                        .readCategoryById(catId);
+                } else {
+                    Swal.fire("Error", "No se pudo eliminar la categoría", "error");
+                }
+            }).removeCategory(catId)
+    })
+    $("#categoryTable").on("click", ".readCategory", function () {
+      const $row = $(this).closest("tr");
+      const rowData = categoryModule.categoryTable.row($row).data();
+      const categoryId = rowData.id;
+      console.log("Reading products for Category ID:", categoryId);
+
+      google.script.run
+        .withSuccessHandler(displayCategoryOffcanvasResults)
+        .getCategoryRelatedRecords(
+          categoryId,
+        );
+    });
+
+    window.lastCategoryResults = null;
+
+    function displayCategoryOffcanvasResults(serverResponse) {
+      const data = JSON.parse(serverResponse);
+      window.lastCategoryResults = data;
+
+      // Start with cards view
+      buildCategoryCardsView(data);
+
+      // Show the wide offcanvas
+      const offcanvasEl = document.getElementById("offcanvasCategory");
+      const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
+      bsOffcanvas.show();
+    }
+
+    // Toggle between JSON and cards for Category
+    $("#toggleViewBtnCategory").on("click", function () {
+      const currentView = $(this).attr("data-view");
+      const data = window.lastCategoryResults || { data: [] };
+      if (!data || !data.data) return;
+
+      if (currentView === "cards") {
+        // Switch to JSON
+        buildCategoryJsonView(data);
+        $(this).attr("data-view", "json").text("Ver Cards");
+      } else {
+        // Switch back to Cards
+        buildCategoryCardsView(data);
+        $(this).attr("data-view", "cards").text("Ver JSON");
+      }
+    });
+
+    // Build Cards for Category
+    function buildCategoryCardsView(response) {
+      const $body = $("#offcanvasCategoryBody");
+      $body.empty();
+
+      if (response.status !== 200) {
+        $body.append(`<p>Error: ${response.error || "Desconocido"}</p>`);
+        return;
+      }
+      if (!response.data || response.data.length === 0) {
+        $body.append(`<p>No se encontraron productos.</p>`);
+        return;
+      }
+
+      response.data.forEach((item) => {
+        /* Suppose each "item" is a Product row:
+          { id: 123, name: "Laptop", price: 999, category_fk: 4, created_at: "2024-01-01" }
+        */
+        const cardHtml = `
+          <div class="card mb-2">
+            <div class="card-body d-flex">
+              <i class="bi bi-laptop me-3" style="font-size:2rem;"></i>
+              <div>
+                <h5 class="card-title mb-0">${item.name}</h5>
+                <small class="text-muted">ID: ${item.id}</small>
+                <p class="mt-2 mb-0">Precio: $${item.price}</p>
+                <p class="mb-0">Fecha: ${item.created_at || "N/A"}</p>
+              </div>
+            </div>
+          </div>`;
+        $body.append(cardHtml);
+      });
+    }
+
+    // Build JSON for Category
+    function buildCategoryJsonView(response) {
+      const $body = $("#offcanvasCategoryBody");
+      $body.empty();
+
+      if (response.status !== 200) {
+        $body.append(`<p>Error: ${response.error || "Desconocido"}</p>`);
+        return;
+      }
+      if (!response.data || response.data.length === 0) {
+        $body.append(`<p>No se encontraron productos.</p>`);
+        return;
+      }
+
+      const pre = $("<pre></pre>").text(JSON.stringify(response.data, null, 2));
+      $body.append(pre);
+    }
+
+
+    /****************************************************
+     * Order Module Logic
+     ****************************************************/
+    const orderModule = {
+        orderTable: null,
+        currentRow: null, // store the currently selected row data (for editing)
+    };
+
+
+    function initOrderTable() {
+        orderModule.orderTable = $("#orderTable").DataTable({
+            responsive: true,
+            language: {
+                lengthMenu: "Mostrar _MENU_ órdenes por página",
+                zeroRecords: "No se encontraron registros",
+            },
+            columns: [
+                {
+                    data: "id",
+                    render: function (data, type, row) {
+                        return `
+              <div class="btn-group" role="group">
+                <button class="btn-custom btn-warning btn-rounded editOrder" data-id="${data}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-custom btn-danger btn-rounded deleteOrder" data-id="${data}">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <button type="button" class="btn-custom btn-info btn-rounded readOrder" data-id="${data}">
+                  <i class="bi bi-info-circle-fill"></i>
+                </button>
+              </div>`;
+                    },
+                },
+                {data: "customer_fk"},
+                {data: "created_at"},
+                {data: "date"},
+            ],
+            columnDefs: [
+                {className: "text-center", targets: "_all"},
+            ],
+        });
+    }
+
+    function loadOrders() {
+        google.script.run
+            .withSuccessHandler(handleOrdersLoaded)
+            .withFailureHandler((error) => defaultSwalErr("cargar órdenes", error))
+            .readOrderTable();
+    }
+
+    function handleOrdersLoaded(response) {
+        const data = JSON.parse(response);
+        console.log("loaded", data.data.length, "orders");
+        orderModule.orderTable.clear().rows.add(data.data).draw();
+    }
+
+
+    function loadCustomersForSelect() {
+        google.script.run
+            .withSuccessHandler(function (response) {
+                const data = JSON.parse(response);
+                if (data.status === 200) {
+                    const customers = data.data.map(c => ({
+                        id: c.id,
+                        text: c.first_name + " " + c.last_name
+                    }));
+                    const $select = $("#createOrderCustomer, #editOrderCustomer");
+                    $select.empty(); // remove placeholder option
+                    $select.select2({
+                        dropdownAutoWidth: true,
+                        width: '100%',
+                        data: customers,
+                        theme: "bootstrap-5",
+                        placeholder: "Seleccione un cliente",
+                        allowClear: true
+                    });
+                } else {
+                    console.error("Error loading customers:", data);
+                }
+            })
+            .withFailureHandler(function (err) {
+                console.error("Apps Script error loading customers:", err);
+            })
+            .readCustomerTable();
+    }
+
+    /**
+     * Re-initializes the Order table if needed, then loads data.
+     */
+    function initOrderManagement() {
+        if (orderModule.orderTable) {
+            orderModule.orderTable.destroy();
+        }
+        initOrderTable();
+        loadOrders();
+
+        $("#createOrderCustomer, #editOrderCustomer").select2({
+            theme: "bootstrap-5", // if using the bootstrap theme
+            placeholder: "Seleccione un cliente",
+            allowClear: true
+        });
+        loadCustomersForSelect();
+    }
+
+    // Call this once when the page is ready
+    initOrderManagement();
+
+    /****************************************************
+     * Refresh Table
+     ****************************************************/
+    $("#refreshOrderTable").click(function () {
+        defaultLoadingSwalToast("Cargando la información de órdenes...");
+        loadOrders();
+    });
+
+    /****************************************************
+     * CREATE NEW ORDER
+     ****************************************************/
+    $("#createNewOrder").click(function () {
+        // Move carousel to the “Create Order” form
+        $("#orderModule").carousel(1);
+    });
+
+    $("#createOrderForm").on("submit", function (e) {
+        e.preventDefault();
+        defaultLoadingSwalToast("Creando nueva orden...");
+
+        // Gather form values
+        const newOrderCustomer = $("#createOrderCustomer").val();
+        const newOrderDate = $("#createOrderDate").val();
+
+        // Make server call
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                if (response.status === 200) {
+                    Swal.fire("Éxito!", "Orden creada correctamente", "success");
+                    console.log("Created new order!", response);
+
+                    // Optionally reload or append row to table
+                    loadOrders();
+                } else {
+                    Swal.fire("Error", "No se pudo crear la orden", "error");
+                }
+            })
+            .createOrder({
+                customer_fk: Number(newOrderCustomer),
+                created_at: newOrderDate,
+            });
+
+        console.log("Submitting new order:", newOrderCustomer, newOrderDate);
+    });
+
+    /****************************************************
+     * EDIT ORDER
+     ****************************************************/
+    $("#editOrderForm").on("submit", function (e) {
+        e.preventDefault();
+
+        const orderId = orderModule.currentRow.id;
+        const orderCustomer = $("#editOrderCustomer").val();
+        const orderDate = $("#editOrderDate").val();
+        defaultLoadingSwalToast("Editando la orden...");
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+
+                if (response.status === 200) {
+                    Swal.fire("Éxito!", `Orden editada correctamente`, "success");
+                    console.log("edited order!", response);
+
+                    const updatedOrder = response.data;
+                    // Update the row in the DataTable
+                    const rowIndexes = orderModule.orderTable
+                        .rows()
+                        .indexes()
+                        .filter(function (idx) {
+                            return (
+                                orderModule.orderTable.row(idx).data().id === updatedOrder.id
+                            );
+                        });
+
+                    if (rowIndexes.length) {
+                        orderModule.orderTable
+                            .row(rowIndexes[0])
+                            .data(updatedOrder)
+                            .draw(false);
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Éxito",
+                            text: "Tabla actualizada correctamente",
+                            toast: true,
+                            position: "top-end",
+                            showConfirmButton: false,
+                            timer: 3000,
+                        });
+                    }
+                } else if (
+                    response.status === 500 &&
+                    response.error &&
+                    response.error.includes("write lock")
+                ) {
+                    // Another user has edited it first
+                    Swal.fire({
+                        icon: "info",
+                        title: "Oh! 🤓",
+                        html: `Parece que alguien editó primero esta Orden; intentalo de nuevo. <br> Dejame te traigo la info más actualizada!`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                    });
+
+                    // Re-fetch the latest data
+                    google.script.run
+                        .withSuccessHandler((r) => {
+                            r = JSON.parse(r);
+                            if (r.status === 200) {
+                                $("#editOrderCustomer").val(r.data.customer_fk);
+                                $("#editOrderDate").val(r.data.created_at.substr(0, 10));
+
+                                // Update row in the DataTable
+                                const updatedOrder = r.data;
+                                const rowIndexes = orderModule.orderTable
+                                    .rows()
+                                    .indexes()
+                                    .filter(function (idx) {
+                                        return (
+                                            orderModule.orderTable.row(idx).data().id ===
+                                            updatedOrder.id
+                                        );
+                                    });
+
+                                if (rowIndexes.length) {
+                                    orderModule.orderTable
+                                        .row(rowIndexes[0])
+                                        .data(updatedOrder)
+                                        .draw(false);
+
+                                    Swal.fire({
+                                        icon: "success",
+                                        title: "Éxito",
+                                        text: "Tabla actualizada correctamente",
+                                        toast: true,
+                                        position: "top-end",
+                                        showConfirmButton: false,
+                                        timer: 3000,
+                                    });
+                                }
+                            } else {
+                                // The record no longer exists or something else went wrong
+                                Swal.fire({
+                                    icon: "warning",
+                                    title: "Jmm...🤔",
+                                    html: "Parece que este registro ya no existe.<br> Dejame actualizo la información.",
+                                    showConfirmButton: false,
+                                    didOpen: () => {
+                                        Swal.showLoading();
+                                    },
+                                });
+                                loadOrders();
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Éxito",
+                                    text: "Tabla actualizada correctamente",
+                                    toast: true,
+                                    position: "top-end",
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                });
+                                console.warn("Unable to refresh order data", r);
+                            }
+                        })
+                        .readOrderById(orderId);
+                } else {
+                    // Possibly doesn't exist anymore
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Jmm...🤔",
+                        html: "Parece que este registro ya no existe.<br> Dejame actualizo la información.",
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                    });
+                    loadOrders();
+                    Swal.fire({
+                        icon: "success",
+                        title: "Éxito",
+                        text: "Tabla actualizada correctamente",
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 3000,
+                    });
+                    console.warn("Unable to refresh order data", response);
+                }
+            })
+            .updateOrder({customer_fk: Number(orderCustomer), created_at: orderDate}, orderId);
+
+        console.log("Updating order:", orderId, orderCustomer, orderDate);
+    });
+
+    /****************************************************
+     * EDIT BUTTON CLICK
+     ****************************************************/
+    $("#orderTable").on("click", ".editOrder", function () {
+        // Get the Order ID from the data-id attribute
+        const orderId = $(this).data("id");
+        // Store current row data in orderModule.currentRow
+        orderModule.currentRow = orderModule.orderTable
+            .row($(this).closest("tr"))
+            .data();
+
+        console.log("Editing order:", orderId, orderModule.currentRow);
+
+        // Fill the Edit form
+        $("#editOrderCustomer").val(orderModule.currentRow.customer_fk);
+        // date? depends on how you store it. Example:
+        $("#editOrderDate").val(
+            orderModule.currentRow.created_at
+                ? orderModule.currentRow.created_at.substr(0, 10)
+                : ""
+        );
+
+        // Move carousel to the “Edit Order” form (3rd slide => index=2)
+        $("#orderModule").carousel(2);
+    });
+
+    /****************************************************
+     * DELETE BUTTON CLICK
+     ****************************************************/
+    $("#orderTable").on("click", ".deleteOrder", function () {
+        const orderId = $(this).data("id");
+        const $row = $(this).closest("tr");
+        const rowData = orderModule.orderTable.row($row).data();
+        console.log("Deleting order:", orderId, rowData);
+
+        defaultLoadingSwalToast("Eliminando la orden...");
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                console.log("deleteOrder response:", response);
+                if (response.status === 200) {
+                    // Remove from DataTable
+                    orderModule.orderTable.row($row).remove().draw(false);
+                    Swal.fire("Exito!", `Orden eliminada: ${rowData.id}`, "success");
+                } else if (
+                    response.status === 500 &&
+                    response.error &&
+                    response.error.includes("write lock")
+                ) {
+                    Swal.fire({
+                        icon: "info",
+                        title: "Oh! 🤓",
+                        html: `Parece que alguien editó/eliminó primero esta orden; intentalo de nuevo. <br> Te traigo la info más actualizada!`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                    });
+                    // Re-fetch to see if the record is still around
+                    google.script.run
+                        .withSuccessHandler((r) => {
+                            r = JSON.parse(r);
+                            if (r.status === 200) {
+                                // So it still exists, update row in table
+                                const updatedOrder = r.data;
+                                const rowIndexes = orderModule.orderTable
+                                    .rows()
+                                    .indexes()
+                                    .filter(function (idx) {
+                                        return (
+                                            orderModule.orderTable.row(idx).data().id ===
+                                            updatedOrder.id
+                                        );
+                                    });
+                                if (rowIndexes.length) {
+                                    orderModule.orderTable
+                                        .row(rowIndexes[0])
+                                        .data(updatedOrder)
+                                        .draw(false);
+                                    Swal.fire({
+                                        icon: "success",
+                                        title: "Éxito",
+                                        text: "Tabla actualizada correctamente",
+                                        toast: true,
+                                        position: "top-end",
+                                        showConfirmButton: false,
+                                        timer: 3000,
+                                    });
+                                }
+                                console.log("Refreshed data for order", r.data);
+                            } else {
+                                // Possibly no longer exists
+                                Swal.fire({
+                                    icon: "warning",
+                                    title: "Jmm...🤔",
+                                    text: "Parece que este registro ya no existe! <br> Actualizaré la información.",
+                                    showConfirmButton: false,
+                                    didOpen: () => {
+                                        Swal.showLoading();
+                                    },
+                                });
+                                loadOrders();
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Éxito",
+                                    text: "Tabla actualizada correctamente",
+                                    toast: true,
+                                    position: "top-end",
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                });
+                                console.warn("Unable to refresh order data", r);
+                            }
+                        })
+                        .readOrderById(orderId);
+                } else {
+                    Swal.fire("Error", "No se pudo eliminar la Orden", "error");
+                }
+            })
+            .removeOrder(orderId);
+    });
+
+    /****************************************************
+     * Product Module Logic
+     ****************************************************/
+    const productModule = {
+        productTable: null,
+        currentRow: null, // store data of the currently selected row
+    };
+
+    // 1) Initialize DataTable
+    function initProductTable() {
+        productModule.productTable = $("#productTable").DataTable({
+            responsive: true,
+            language: {
+                lengthMenu: "Mostrar _MENU_ productos por página",
+                zeroRecords: "No se encontraron registros",
+            },
+            columns: [
+                {
+                    data: "id",
+                    render: function (data, type, row) {
+                        return `
+                  <div class="btn-group" role="group">
+                    <button class="btn-custom btn-warning btn-rounded editProduct" data-id="${data}">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn-custom btn-danger btn-rounded deleteProduct" data-id="${data}">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <button type="button" class="btn-custom btn-info btn-rounded readProduct" data-id="${data}">
+                      <i class="bi bi-info-circle-fill"></i>
+                    </button>
+                  </div>
+                `;
+                    },
+                },
+                {data: "name"},
+                {data: "price"},
+                {data: "category_fk"},
+                {data: "created_at"},
+            ],
+            columnDefs: [
+                {className: "text-center", targets: "_all"},
+            ],
+        });
+    }
+
+    // 2) Load Products from Server
+    function loadProducts() {
+        google.script.run
+            .withSuccessHandler(handleProductsLoaded)
+            .withFailureHandler((error) => defaultSwalErr("cargar productos", error))
+            .readProductTable(); // your server function
+    }
+
+    function handleProductsLoaded(response) {
+        const data = JSON.parse(response);
+        console.log("loaded", data.data.length, "products");
+        productModule.productTable.clear().rows.add(data.data).draw();
+    }
+
+    // 3) Initialize the Module
+    function initProductManagement() {
+        if (productModule.productTable) {
+            productModule.productTable.destroy();
+        }
+        initProductTable();
+        loadProducts();
+    }
+
+    initProductManagement();
+
+    // Convert #createProductCategoryFk & #editProductCategoryFk into Select2
+    $("#createProductCategoryFk, #editProductCategoryFk").select2({
+        theme: "bootstrap-5",
+        placeholder: "Seleccione una categoría",
+        allowClear: true,
+    });
+
+    // Load categories for the select2 dropdown
+    loadCategoriesForSelect2();
+
+    // Refresh products
+    $("#refreshProductTable").on("click", function () {
+        defaultLoadingSwalToast("Refrescando lista de productos...");
+        loadProducts();
+    });
+
+    // Create new product => go to carousel second slide
+    $("#createNewProduct").on("click", function () {
+        $("#productModule").carousel(1);
+    });
+
+    // Handle CREATE form submission
+    $("#createProductForm").on("submit", function (e) {
+        e.preventDefault();
+        defaultLoadingSwalToast("Creando producto...");
+
+        // Gather form values
+        const newName = $("#createProductName").val();
+        const newPrice = $("#createProductPrice").val();
+        const newCatId = $("#createProductCategoryFk").val();  // from Select2
+        const newDate = $("#createProductDate").val();
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                if (response.status === 200) {
+                    Swal.fire("Éxito!", "Producto creado correctamente", "success");
+                    loadProducts();
+                } else {
+                    Swal.fire("Error", "No se pudo crear el producto", "error");
+                    console.warn("Create product error:", response);
+                }
+            })
+            .withFailureHandler((err) => {
+                console.error("createProduct error:", err);
+                Swal.fire("Error", "No se pudo crear el producto", "error");
+            })
+            .createProduct({
+                name: newName,
+                price: parseFloat(newPrice),
+                category_fk: Number(newCatId),
+                created_at: newDate,
+            });
+    });
+
+    // Handle EDIT form submission
+    $("#editProductForm").on("submit", function (e) {
+        e.preventDefault();
+        defaultLoadingSwalToast("Editando producto...");
+
+        // The ID from the hidden input or from productModule.currentRow
+        const prodId = $("#editProductId").val();
+
+        // Gather form values
+        const prodName = $("#editProductName").val();
+        const prodPrice = $("#editProductPrice").val();
+        const prodCatId = $("#editProductCategoryFk").val();
+        const prodDate = $("#editProductDate").val();
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                if (response.status === 200) {
+                    Swal.fire("Éxito!", "Producto editado correctamente", "success");
+                    const updatedProduct = response.data;
+
+                    // Update row in DataTable
+                    const rowIndexes = productModule.productTable
+                        .rows()
+                        .indexes()
+                        .filter(function (idx) {
+                            return productModule.productTable.row(idx).data().id === updatedProduct.id;
+                        });
+
+                    if (rowIndexes.length) {
+                        productModule.productTable
+                            .row(rowIndexes[0])
+                            .data(updatedProduct)
+                            .draw(false);
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Éxito",
+                            text: "Tabla actualizada correctamente",
+                            toast: true,
+                            position: "top-end",
+                            showConfirmButton: false,
+                            timer: 3000,
+                        });
+                    }
+                } else if (
+                    response.status === 500 &&
+                    response.error &&
+                    response.error.includes("write lock")
+                ) {
+                    // concurrency error => fetch updated data
+                    Swal.fire({
+                        icon: "info",
+                        title: "Oh! 🤓",
+                        html: `Parece que alguien ya modificó este producto; intente de nuevo. 
+                      <br/> Traeré la info más actualizada...`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: () => Swal.showLoading(),
+                    });
+                    // Re-fetch the product
+                    google.script.run
+                        .withSuccessHandler((r) => {
+                            r = JSON.parse(r);
+                            if (r.status === 200) {
+                                // Update form & table
+                                $("#editProductName").val(r.data.name);
+                                $("#editProductPrice").val(r.data.price);
+                                $("#editProductCategoryFk").val(r.data.category_fk).trigger("change");
+                                $("#editProductDate").val(r.data.created_at?.substr(0, 10));
+
+                                const rowIndexes = productModule.productTable
+                                    .rows()
+                                    .indexes()
+                                    .filter(function (idx) {
+                                        return productModule.productTable.row(idx).data().id === r.data.id;
+                                    });
+
+                                if (rowIndexes.length) {
+                                    productModule.productTable
+                                        .row(rowIndexes[0])
+                                        .data(r.data)
+                                        .draw(false);
+                                }
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Actualizado",
+                                    text: "Tabla y formulario se han actualizado",
+                                    toast: true,
+                                    position: "top-end",
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                });
+                            } else {
+                                // If it no longer exists
+                                Swal.fire({
+                                    icon: "warning",
+                                    title: "Jmm...🤔",
+                                    html: "Parece que este registro ya no existe. Recargaré la lista.",
+                                    showConfirmButton: false,
+                                    didOpen: () => Swal.showLoading(),
+                                });
+                                loadProducts();
+                            }
+                        })
+                        .readProductById(prodId);
+                } else {
+                    // Possibly record no longer exists
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Jmm...🤔",
+                        html: "Parece que este registro ya no existe.<br> Actualizo la información.",
+                        showConfirmButton: false,
+                        didOpen: () => Swal.showLoading(),
+                    });
+                    loadProducts();
+                }
+            })
+            .updateProduct(
+                {
+                    name: prodName,
+                    price: parseFloat(prodPrice),
+                    category_fk: Number(prodCatId),
+                    created_at: prodDate,
+                },
+                prodId
+            );
+    });
+
+    /****************************************************
+     * EDIT BUTTON CLICK in the table
+     ****************************************************/
+    $("#productTable").on("click", ".editProduct", function () {
+        const prodId = $(this).data("id");
+        productModule.currentRow = productModule.productTable
+            .row($(this).closest("tr"))
+            .data();
+
+        console.log("Editing product:", prodId, productModule.currentRow);
+
+        // Fill the edit form
+        $("#editProductId").val(productModule.currentRow.id);
+        $("#editProductName").val(productModule.currentRow.name);
+        $("#editProductPrice").val(productModule.currentRow.price);
+        $("#editProductCategoryFk")
+            .val(productModule.currentRow.category_fk)
+            .trigger("change");
+        $("#editProductDate").val(
+            productModule.currentRow.created_at
+                ? productModule.currentRow.created_at.substr(0, 10)
+                : ""
+        );
+
+        $("#productModule").carousel(2); // navigate to edit form
+    });
+
+    /****************************************************
+     * DELETE BUTTON CLICK in the table
+     ****************************************************/
+    $("#productTable").on("click", ".deleteProduct", function () {
+        const prodId = $(this).data("id");
+        const $row = $(this).closest("tr");
+        const rowData = productModule.productTable.row($row).data();
+
+        console.log("Deleting product:", prodId, rowData);
+        defaultLoadingSwalToast("Eliminando producto...");
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                console.log("deleteProduct response:", response);
+                if (response.status === 200) {
+                    productModule.productTable.row($row).remove().draw(false);
+                    Swal.fire("Éxito!", `Producto eliminado: ${rowData.name}`, "success");
+                } else if (
+                    response.status === 500 &&
+                    response.error &&
+                    response.error.includes("write lock")
+                ) {
+                    Swal.fire({
+                        icon: "info",
+                        title: "Oh! 🤓",
+                        html: `Alguien más editó/eliminó este producto; intentando recargar...`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: () => Swal.showLoading(),
+                    });
+                    // Re-fetch the product
+                    google.script.run
+                        .withSuccessHandler((r) => {
+                            r = JSON.parse(r);
+                            if (r.status === 200) {
+                                // Still exists => update the row
+                                const updatedProd = r.data;
+                                const rowIndexes = productModule.productTable
+                                    .rows()
+                                    .indexes()
+                                    .filter(function (idx) {
+                                        return productModule.productTable.row(idx).data().id === updatedProd.id;
+                                    });
+                                if (rowIndexes.length) {
+                                    productModule.productTable
+                                        .row(rowIndexes[0])
+                                        .data(updatedProd)
+                                        .draw(false);
+                                    Swal.fire({
+                                        icon: "success",
+                                        title: "Actualizado",
+                                        text: "Tabla actualizada correctamente",
+                                        toast: true,
+                                        position: "top-end",
+                                        showConfirmButton: false,
+                                        timer: 3000,
+                                    });
+                                }
+                            } else {
+                                // Possibly deleted
+                                Swal.fire({
+                                    icon: "warning",
+                                    title: "Jmm...🤔",
+                                    html: "Registro ya no existe. Recargo la info.",
+                                    showConfirmButton: false,
+                                    didOpen: () => Swal.showLoading(),
+                                });
+                                loadProducts();
+                            }
+                        })
+                        .readProductById(prodId);
+                } else {
+                    Swal.fire("Error", "No se pudo eliminar el producto", "error");
+                }
+            })
+            .removeProduct(prodId);
+    });
+
+    /****************************************************
+     * Load Categories for the select2 drop-down
+     ****************************************************/
+    function loadCategoriesForSelect2() {
+        google.script.run
+            .withSuccessHandler((response) => {
+                const data = JSON.parse(response);
+                if (data.status === 200) {
+                    const categories = data.data; // array of {id, name, ...}
+                    // Clear & repopulate both create/edit selects
+                    const $createSelect = $("#createProductCategoryFk");
+                    const $editSelect = $("#editProductCategoryFk");
+                    $createSelect.empty();
+                    $editSelect.empty();
+
+                    // Append categories as <option>
+                    categories.forEach((cat) => {
+                        $createSelect.append(
+                            new Option(cat.name, cat.id, false, false)
+                        );
+                        $editSelect.append(
+                            new Option(cat.name, cat.id, false, false)
+                        );
+                    });
+
+                    // Trigger change so Select2 can refresh
+                    $createSelect.trigger("change");
+                    $editSelect.trigger("change");
+                } else {
+                    console.error("Failed to load categories:", data);
+                }
+            })
+            .withFailureHandler((err) => {
+                console.error("Error loading categories:", err);
+            })
+            .readCategoryTable(); // or whatever your function is
+    }
+
+
+    /****************************************************
+     * Customer Module Logic
+     ****************************************************/
+    const customerModule = {
+        customerTable: null,
+        currentRow: null, // store data of the currently selected row
+    };
+
+    /**
+     * 1) Initialize DataTable
+     */
+    function initCustomerTable() {
+        customerModule.customerTable = $("#customerTable").DataTable({
+            responsive: true,
+            language: {
+                lengthMenu: "Mostrar _MENU_ clientes por página",
+                zeroRecords: "No se encontraron registros",
+            },
+            columns: [
+                {
+                    data: "id",
+                    render: function (data, type, row) {
+                        return `
+                  <div class="btn-group" role="group">
+                    <button class="btn-custom btn-warning btn-rounded editCustomer" data-id="${data}">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn-custom btn-danger btn-rounded deleteCustomer" data-id="${data}">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <button type="button" class="btn-custom btn-info btn-rounded readCustomer" data-id="${data}">
+                      <i class="bi bi-info-circle-fill"></i>
+                    </button>
+                  </div>
+                `;
+                    },
+                },
+                {data: "first_name"},
+                {data: "last_name"},
+                {data: "email"},
+                {data: "address"},
+                {data: "created_at"},
+            ],
+            columnDefs: [
+                {className: "text-center", targets: "_all"},
+            ],
+        });
+    }
+
+    /**
+     * 2) Load Customers from Server
+     */
+    function loadCustomers() {
+        google.script.run
+            .withSuccessHandler(handleCustomersLoaded)
+            .withFailureHandler((error) => defaultSwalErr("cargar clientes", error))
+            .readCustomerTable(); // your server function
+    }
+
+    function handleCustomersLoaded(response) {
+        const data = JSON.parse(response);
+        console.log("loaded", data.data.length, "customers");
+        customerModule.customerTable.clear().rows.add(data.data).draw();
+    }
+
+    /**
+     * 3) Initialize the Customer Management Module
+     */
+    function initCustomerManagement() {
+        if (customerModule.customerTable) {
+            customerModule.customerTable.destroy();
+        }
+        initCustomerTable();
+        loadCustomers();
+    }
+
+    // Initialize DataTable and load data
+    initCustomerManagement();
+
+    // Refresh customers
+    $("#refreshCustomerTable").click(function () {
+        defaultLoadingSwalToast("Refrescando lista de clientes...");
+        loadCustomers();
+    });
+
+    // Create new customer => go to second slide
+    $("#createNewCustomer").click(function () {
+        $("#customerModule").carousel(1);
+    });
+
+    /****************************************************
+     * CREATE FORM SUBMISSION
+     ****************************************************/
+    $("#createCustomerForm").on("submit", function (e) {
+        e.preventDefault();
+        defaultLoadingSwalToast("Creando cliente...");
+
+        // Gather form values
+        const firstName = $("#createCustomerFirstName").val();
+        const lastName = $("#createCustomerLastName").val();
+        const email = $("#createCustomerEmail").val();
+        const address = $("#createCustomerAddress").val();
+        const dateCreated = $("#createCustomerDate").val();
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                if (response.status === 200) {
+                    Swal.fire("Éxito!", "Cliente creado correctamente", "success");
+                    // Refresh the table or add new row directly
+                    loadCustomers();
+                } else {
+                    Swal.fire("Error", "No se pudo crear el cliente", "error");
+                    console.warn("Create customer error:", response);
+                }
+            })
+            .withFailureHandler((err) => {
+                console.error("createCustomer error:", err);
+                Swal.fire("Error", "No se pudo crear el cliente", "error");
+            })
+            .createCustomer({
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                address: address,
+                created_at: dateCreated,
+            });
+    });
+
+    /****************************************************
+     * EDIT FORM SUBMISSION
+     ****************************************************/
+    $("#editCustomerForm").on("submit", function (e) {
+        e.preventDefault();
+        defaultLoadingSwalToast("Editando cliente...");
+
+        // The ID from the hidden input or from currentRow
+        const custId = $("#editCustomerId").val();
+
+        // Gather form values
+        const firstName = $("#editCustomerFirstName").val();
+        const lastName = $("#editCustomerLastName").val();
+        const email = $("#editCustomerEmail").val();
+        const address = $("#editCustomerAddress").val();
+        const dateCreated = $("#editCustomerDate").val();
+
+        google.script.run
+            .withSuccessHandler((response) => {
+                response = JSON.parse(response);
+                if (response.status === 200) {
+                    Swal.fire("Éxito!", "Cliente editado correctamente", "success");
+                    const updatedCustomer = response.data;
+
+                    // Update row in DataTable
+                    const rowIndexes = customerModule.customerTable
+                        .rows()
+                        .indexes()
+                        .filter(function (idx) {
+                            return (
+                                customerModule.customerTable.row(idx).data().id === updatedCustomer.id
+                            );
+                        });
+
+                    if (rowIndexes.length) {
+                        customerModule.customerTable
+                            .row(rowIndexes[0])
+                            .data(updatedCustomer)
+                            .draw(false);
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Éxito",
+                            text: "Tabla actualizada correctamente",
+                            toast: true,
+                            position: "top-end",
+                            showConfirmButton: false,
+                            timer: 3000,
+                        });
+                    }
+                } else if (
+                    response.status === 500 &&
+                    response.error &&
+                    response.error.includes("write lock")
+                ) {
+                    // concurrency => re-fetch updated data
+                    Swal.fire({
+                        icon: "info",
+                        title: "Oh! 🤓",
+                        html: `Parece que alguien ya modificó este cliente; intente de nuevo. 
+                        <br/> Traeré la info más actualizada...`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: () => Swal.showLoading(),
+                    });
+
+                    // Re-fetch the customer
+                    google.script.run
+                        .withSuccessHandler((r) => {
+                            r = JSON.parse(r);
+                            if (r.status === 200) {
+                                // Update form & table
+                                $("#editCustomerFirstName").val(r.data.first_name);
+                                $("#editCustomerLastName").val(r.data.last_name);
+                                $("#editCustomerEmail").val(r.data.email);
+                                $("#editCustomerAddress").val(r.data.address);
+                                $("#editCustomerDate").val(
+                                    r.data.created_at ? r.data.created_at.substr(0, 10) : ""
+                                );
+
+                                const rowIndexes = customerModule.customerTable
+                                    .rows()
+                                    .indexes()
+                                    .filter(function (idx) {
+                                        return (
+                                            customerModule.customerTable.row(idx).data().id === r.data.id
+                                        );
+                                    });
+
+                                if (rowIndexes.length) {
+                                    customerModule.customerTable
+                                        .row(rowIndexes[0])
+                                        .data(r.data)
+                                        .draw(false);
+                                }
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Actualizado",
+                                    text: "Tabla y formulario se han actualizado",
+                                    toast: true,
+                                    position: "top-end",
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                });
+                            } else {
+                                // Possibly doesn't exist
+                                Swal.fire({
+                                    icon: "warning",
+                                    title: "Jmm...🤔",
+                                    html: "Parece que este registro ya no existe. Recargaré la lista.",
+                                    showConfirmButton: false,
+                                    didOpen: () => Swal.showLoading(),
+                                });
+                                loadCustomers();
+                            }
+                        })
+                        .readCustomerById(custId);
+                } else {
+                    // Possibly doesn't exist
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Jmm...🤔",
+                        html: "Parece que este registro ya no existe.<br> Actualizo la información.",
+                        showConfirmButton: false,
+                        didOpen: () => Swal.showLoading(),
+                    });
+                    loadCustomers();
+                }
+            }).updateCustomer(
+                {
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email,
+                    address: address,
+                    created_at: dateCreated,
+                },
+                custId
+            );
+        }); 
+            
+
+
+        /****************************************************
+         * EDIT BUTTON CLICK in the table
+         ****************************************************/
+        $("#customerTable").on("click", ".editCustomer", function () {
+            const custId = $(this).data("id");
+            customerModule.currentRow = customerModule.customerTable
+                .row($(this).closest("tr"))
+                .data();
+
+            console.log("Editing customer:", custId, customerModule.currentRow);
+
+            // Fill the edit form
+            $("#editCustomerId").val(customerModule.currentRow.id);
+            $("#editCustomerFirstName").val(customerModule.currentRow.first_name);
+            $("#editCustomerLastName").val(customerModule.currentRow.last_name);
+            $("#editCustomerEmail").val(customerModule.currentRow.email);
+            $("#editCustomerAddress").val(customerModule.currentRow.address);
+            $("#editCustomerDate").val(
+                customerModule.currentRow.created_at
+                    ? customerModule.currentRow.created_at.substr(0, 10)
+                    : ""
+            );
+
+            $("#customerModule").carousel(2); // navigate to edit form
+        });
+
+        /****************************************************
+         * DELETE BUTTON CLICK in the table
+         ****************************************************/
+        $("#customerTable").on("click", ".deleteCustomer", function () {
+            const custId = $(this).data("id");
+            const $row = $(this).closest("tr");
+            const rowData = customerModule.customerTable.row($row).data();
+
+            console.log("Deleting customer:", custId, rowData);
+            defaultLoadingSwalToast("Eliminando cliente...");
+
+            google.script.run
+                .withSuccessHandler((response) => {
+                    response = JSON.parse(response);
+                    console.log("deleteCustomer response:", response);
+                    if (response.status === 200) {
+                        // Remove from DataTable
+                        customerModule.customerTable.row($row).remove().draw(false);
+                        Swal.fire("Éxito!", `Cliente eliminado: ${rowData.first_name}`, "success");
+                    } else if (
+                        response.status === 500 &&
+                        response.error &&
+                        response.error.includes("write lock")
+                    ) {
+                        // concurrency => re-fetch
+                        Swal.fire({
+                            icon: "info",
+                            title: "Oh! 🤓",
+                            html: `Alguien más editó/eliminó este cliente; intentando recargar...`,
+                            showConfirmButton: false,
+                            timer: 5000,
+                            timerProgressBar: true,
+                            didOpen: () => Swal.showLoading(),
+                        });
+
+                        google.script.run
+                            .withSuccessHandler((r) => {
+                                r = JSON.parse(r);
+                                if (r.status === 200) {
+                                    // Still exists => update the row
+                                    const updatedCust = r.data;
+                                    const rowIndexes = customerModule.customerTable
+                                        .rows()
+                                        .indexes()
+                                        .filter(function (idx) {
+                                            return (
+                                                customerModule.customerTable.row(idx).data().id === updatedCust.id
+                                            );
+                                        });
+                                    if (rowIndexes.length) {
+                                        customerModule.customerTable
+                                            .row(rowIndexes[0])
+                                            .data(updatedCust)
+                                            .draw(false);
+
+                                        Swal.fire({
+                                            icon: "success",
+                                            title: "Actualizado",
+                                            text: "Tabla actualizada correctamente",
+                                            toast: true,
+                                            position: "top-end",
+                                            showConfirmButton: false,
+                                            timer: 3000,
+                                        });
+                                    }
+                                } else {
+                                    // Possibly deleted
+                                    Swal.fire({
+                                        icon: "warning",
+                                        title: "Jmm...🤔",
+                                        html: "Registro ya no existe. Recargo la info.",
+                                        showConfirmButton: false,
+                                        didOpen: () => Swal.showLoading(),
+                                    });
+                                    loadCustomers();
+                                }
+                            })
+                            .readCustomerById(custId);
+                    } else {
+                        Swal.fire("Error", "No se pudo eliminar el cliente", "error");
+                    }
+                })
+                .removeCustomer(custId);
+        });
+      $("#customerTable").on("click", ".readCustomer", function () {
+      const $row = $(this).closest("tr");
+      console.log($row)
+      const rowData = customerModule.customerTable.row($row).data();
+      const customerId = rowData.id;
+      console.log("Reading orders for Customer ID:", customerId);
+
+      google.script.run
+        .withSuccessHandler(displayCustomerOffcanvasResults)
+        .getRelatedCustomerRecords(
+          customerId
+        );
+    });
+
+    window.lastCustomerResults = null;
+
+    function displayCustomerOffcanvasResults(serverResponse) {
+      const data = JSON.parse(serverResponse);
+      window.lastCustomerResults = data;
+
+      // Start with cards view
+      buildCustomerCardsView(data);
+
+      // Show the normal offcanvas
+      const offcanvasEl = document.getElementById("offcanvasCustomer");
+      const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
+      bsOffcanvas.show();
+    }
+
+    // Toggle between JSON and cards for Customer
+    $("#toggleViewBtnCustomer").on("click", function () {
+      const currentView = $(this).attr("data-view");
+      const data = window.lastCustomerResults || { data: [] };
+      if (!data || !data.data) return;
+
+      if (currentView === "cards") {
+        // Switch to JSON
+        buildCustomerJsonView(data);
+        $(this).attr("data-view", "json").text("Ver Cards");
+      } else {
+        // Switch back to Cards
+        buildCustomerCardsView(data);
+        $(this).attr("data-view", "cards").text("Ver JSON");
+      }
+    });
+
+    // Build Cards for Customer
+    function buildCustomerCardsView(response) {
+      const $body = $("#offcanvasCustomerBody");
+      $body.empty();
+
+      if (response.status !== 200) {
+        $body.append(`<p>Error: ${response.error || "Desconocido"}</p>`);
+        return;
+      }
+      if (!response.data || response.data.length === 0) {
+        $body.append(`<p>No se encontraron órdenes.</p>`);
+        return;
+      }
+
+      response.data.forEach((order) => {
+        /* Suppose each "order" has shape:
+          { id: 10, customer_fk: 3, created_at: "2024-02-15", date: "2024-02-15" }
+        */
+        const cardHtml = `
+          <div class="card mb-2">
+            <div class="card-body d-flex">
+              <i class="bi bi-cart-check me-3" style="font-size:2rem;"></i>
+              <div>
+                <h5 class="card-title mb-0">Orden #${order.id}</h5>
+                <small class="text-muted">Fecha: ${order.date || "N/A"}</small>
+                <p class="mt-2 mb-0">Creado: ${order.created_at || "N/A"}</p>
+              </div>
+            </div>
+          </div>
+        `;
+        $body.append(cardHtml);
+      });
+    }
+
+    // Build JSON for Customer
+    function buildCustomerJsonView(response) {
+      const $body = $("#offcanvasCustomerBody");
+      $body.empty();
+
+      if (response.status !== 200) {
+        $body.append(`<p>Error: ${response.error || "Desconocido"}</p>`);
+        return;
+      }
+      if (!response.data || response.data.length === 0) {
+        $body.append(`<p>No se encontraron órdenes.</p>`);
+        return;
+      }
+
+      const pre = $("<pre></pre>").text(JSON.stringify(response.data, null, 2));
+      $body.append(pre);
+    }
+    /****************************************************
+     * OrderDetail Module Logic
+     ****************************************************/
+    const orderDetailModule = {
+      orderDetailTable: null,
+      currentRow: null,
+    };
+
+    function initOrderDetailTable() {
+      orderDetailModule.orderDetailTable = $("#orderDetailTable").DataTable({
+        responsive: true,
+        language: {
+          lengthMenu: "Mostrar _MENU_ detalles por página",
+          zeroRecords: "No se encontraron registros",
+        },
+        columns: [
+          {
+            data: "id",
+            render: function (data, type, row) {
+              return `
+                <div class="btn-group" role="group">
+                  <button class="btn-custom btn-warning btn-rounded editOrderDetail" data-id="${data}">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn-custom btn-danger btn-rounded deleteOrderDetail" data-id="${data}">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  <button type="button" class="btn-custom btn-info btn-rounded readOrderDetail" data-id="${data}">
+                    <i class="bi bi-info-circle-fill"></i>
+                  </button>
+                </div>
+              `;
+            },
+          },
+          { data: "order_id" },
+          { data: "product_id" },
+          { data: "quantity" },
+          { data: "created_at" },
+        ],
+        columnDefs: [{ className: "text-center", targets: "_all" }],
+      });
+    }
+
+    function loadOrderDetails() {
+      google.script.run
+        .withSuccessHandler(handleOrderDetailsLoaded)
+        .withFailureHandler((error) => defaultSwalErr("cargar detalles", error))
+        .readOrderDetailTable(); // your server function
+    }
+
+    function handleOrderDetailsLoaded(response) {
+      const data = JSON.parse(response);
+      console.log("loaded", data.data.length, "orderDetail records");
+      orderDetailModule.orderDetailTable.clear().rows.add(data.data).draw();
+    }
+
+    function initOrderDetailManagement() {
+      if (orderDetailModule.orderDetailTable) {
+        orderDetailModule.orderDetailTable.destroy();
+      }
+      initOrderDetailTable();
+      loadOrderDetails();
+    }
+
+    // 1) Initialize table & data
+      initOrderDetailManagement();
+
+      // 2) Initialize Select2 for create/edit forms
+      $("#createOrderFk, #editOrderFk").select2({
+        theme: "bootstrap-5",
+        placeholder: "Seleccione una Orden",
+        allowClear: true,
+      });
+      $("#createProductFk, #editProductFk").select2({
+        theme: "bootstrap-5",
+        placeholder: "Seleccione un Producto",
+        allowClear: true,
+      });
+
+      // 3) Load Orders & Products for these dropdowns
+      loadOrdersForSelect2();   // A function you define to fill #createOrderFk, #editOrderFk
+      loadProductsForSelect2(); // A function you define to fill #createProductFk, #editProductFk
+
+      // 4) Refresh table
+      $("#refreshOrderDetailTable").on("click", function(){
+        defaultLoadingSwalToast("Refrescando detalles...");
+        loadOrderDetails();
+      });
+
+      // 5) Create new => carousel(1)
+      $("#createNewOrderDetail").on("click", function() {
+        $("#orderDetailModule").carousel(1);
+      });
+
+      /****************************************************
+       * CREATE FORM SUBMISSION
+       ****************************************************/
+      $("#createOrderDetailForm").on("submit", function(e){
+        e.preventDefault();
+        defaultLoadingSwalToast("Creando detalle...");
+
+        const orderId = $("#createOrderFk").val();
+        const productId = $("#createProductFk").val();
+        const quantity = $("#createOrderDetailQuantity").val();
+        const createdAt = $("#createOrderDetailDate").val();
+
+        google.script.run
+          .withSuccessHandler((response)=>{
+            response = JSON.parse(response);
+            if(response.status === 200){
+              Swal.fire("Éxito!", "Detalle creado correctamente", "success");
+              loadOrderDetails(); // or directly add row
+            } else {
+              Swal.fire("Error", "No se pudo crear el detalle", "error");
+              console.warn("Create orderDetail error:", response);
+            }
+          })
+          .withFailureHandler((err)=>{
+            console.error("createOrderDetail error:", err);
+            Swal.fire("Error", "No se pudo crear el detalle", "error");
+          })
+          .createOrderDetail({
+            order_id: Number(orderId),
+            product_id: Number(productId),
+            quantity: parseInt(quantity),
+            created_at: createdAt,
+          });
+      });
+
+      /****************************************************
+       * EDIT FORM SUBMISSION
+       ****************************************************/
+      $("#editOrderDetailForm").on("submit", function(e){
+        e.preventDefault();
+        defaultLoadingSwalToast("Editando detalle...");
+
+        const detailId = $("#editOrderDetailId").val();
+        const orderId = $("#editOrderFk").val();
+        const productId = $("#editProductFk").val();
+        const quantity = $("#editOrderDetailQuantity").val();
+        const createdAt = $("#editOrderDetailDate").val();
+
+        google.script.run
+          .withSuccessHandler((response)=>{
+            response = JSON.parse(response);
+            if(response.status === 200){
+              Swal.fire("Éxito!", "Detalle editado correctamente", "success");
+              const updatedDetail = response.data;
+
+              // Update row in DataTable
+              const rowIndexes = orderDetailModule.orderDetailTable
+                .rows()
+                .indexes()
+                .filter(function(idx){
+                  return orderDetailModule.orderDetailTable.row(idx).data().id === updatedDetail.id;
+                });
+              
+              if (rowIndexes.length){
+                orderDetailModule.orderDetailTable
+                  .row(rowIndexes[0])
+                  .data(updatedDetail)
+                  .draw(false);
+
+                Swal.fire({
+                  icon: "success",
+                  title: "Éxito",
+                  text: "Tabla actualizada correctamente",
+                  toast: true,
+                  position: "top-end",
+                  showConfirmButton: false,
+                  timer: 3000,
+                });
+              }
+            } else if(response.status === 500 && response.error && response.error.includes("write lock")){
+              // concurrency => re-fetch
+              Swal.fire({
+                icon: "info",
+                title: "Oh! 🤓",
+                html: `Parece que alguien ya modificó este detalle; intente de nuevo. 
+                      <br/> Traeré la info más actualizada...`,
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true,
+                didOpen: ()=> Swal.showLoading(),
+              });
+
+              google.script.run
+                .withSuccessHandler((r)=>{
+                  r = JSON.parse(r);
+                  if(r.status === 200){
+                    // update form & table
+                    $("#editOrderFk").val(r.data.order_id).trigger("change");
+                    $("#editProductFk").val(r.data.product_id).trigger("change");
+                    $("#editOrderDetailQuantity").val(r.data.quantity);
+                    $("#editOrderDetailDate").val(r.data.created_at?.substr(0,10));
+
+                    const rowIndexes = orderDetailModule.orderDetailTable
+                      .rows()
+                      .indexes()
+                      .filter(function(idx){
+                        return orderDetailModule.orderDetailTable.row(idx).data().id === r.data.id;
+                      });
+                    
+                    if(rowIndexes.length){
+                      orderDetailModule.orderDetailTable
+                        .row(rowIndexes[0])
+                        .data(r.data)
+                        .draw(false);
+                    }
+                    Swal.fire({
+                      icon: "success",
+                      title: "Actualizado",
+                      text: "Tabla y formulario se han actualizado",
+                      toast: true,
+                      position: "top-end",
+                      showConfirmButton: false,
+                      timer: 3000,
+                    });
+                  } else {
+                    // no longer exists
+                    Swal.fire({
+                      icon: "warning",
+                      title: "Jmm...🤔",
+                      html: "Parece que este detalle ya no existe. Recargaré la lista.",
+                      showConfirmButton: false,
+                      didOpen: ()=> Swal.showLoading(),
+                    });
+                    loadOrderDetails();
+                  }
+                })
+                .readOrderDetailById(detailId);
+            } else {
+              // Possibly doesn't exist
+              Swal.fire({
+                icon: "warning",
+                title: "Jmm...🤔",
+                html: "Parece que este registro ya no existe.<br> Actualizo la información.",
+                showConfirmButton: false,
+                didOpen: ()=> Swal.showLoading(),
+              });
+              loadOrderDetails();
+            }
+          })
+          .updateOrderDetail(
+            {
+              order_id: Number(orderId),
+              product_id: Number(productId),
+              quantity: parseInt(quantity),
+              created_at: createdAt,
+            },
+            detailId
+          );
+      });
+
+      /****************************************************
+       * EDIT BUTTON CLICK
+       ****************************************************/
+      $("#orderDetailTable").on("click", ".editOrderDetail", function(){
+        const detailId = $(this).data("id");
+        orderDetailModule.currentRow = orderDetailModule.orderDetailTable
+          .row($(this).closest("tr"))
+          .data();
+
+        console.log("Editing detail:", detailId, orderDetailModule.currentRow);
+
+        // Fill the edit form
+        $("#editOrderDetailId").val(orderDetailModule.currentRow.id);
+        $("#editOrderFk")
+          .val(orderDetailModule.currentRow.order_id)
+          .trigger("change");
+        $("#editProductFk")
+          .val(orderDetailModule.currentRow.product_id)
+          .trigger("change");
+        $("#editOrderDetailQuantity").val(orderDetailModule.currentRow.quantity);
+        $("#editOrderDetailDate").val(
+          orderDetailModule.currentRow.created_at
+            ? orderDetailModule.currentRow.created_at.substr(0, 10)
+            : ""
+        );
+
+        $("#orderDetailModule").carousel(2);
+      });
+
+      /****************************************************
+       * DELETE BUTTON CLICK
+       ****************************************************/
+      $("#orderDetailTable").on("click", ".deleteOrderDetail", function(){
+        const detailId = $(this).data("id");
+        const $row = $(this).closest("tr");
+        const rowData = orderDetailModule.orderDetailTable.row($row).data();
+
+        console.log("Deleting detail:", detailId, rowData);
+        defaultLoadingSwalToast("Eliminando detalle...");
+
+        google.script.run
+          .withSuccessHandler((response)=>{
+            response = JSON.parse(response);
+            console.log("deleteOrderDetail response:", response);
+            if(response.status === 200){
+              orderDetailModule.orderDetailTable.row($row).remove().draw(false);
+              Swal.fire("Éxito!", `Detalle eliminado: ${rowData.id}`, "success");
+            } else if(response.status === 500 && response.error && response.error.includes("write lock")){
+              Swal.fire({
+                icon: "info",
+                title: "Oh! 🤓",
+                html: `Alguien más editó/eliminó este detalle; intentando recargar...`,
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true,
+                didOpen: ()=> Swal.showLoading(),
+              });
+
+              google.script.run
+                .withSuccessHandler((r)=>{
+                  r = JSON.parse(r);
+                  if(r.status === 200){
+                    // update row
+                    const updatedDetail = r.data;
+                    const rowIndexes = orderDetailModule.orderDetailTable
+                      .rows()
+                      .indexes()
+                      .filter(function(idx){
+                        return orderDetailModule.orderDetailTable.row(idx).data().id === updatedDetail.id;
+                      });
+                    if(rowIndexes.length){
+                      orderDetailModule.orderDetailTable
+                        .row(rowIndexes[0])
+                        .data(updatedDetail)
+                        .draw(false);
+                      Swal.fire({
+                        icon: "success",
+                        title: "Actualizado",
+                        text: "Tabla actualizada correctamente",
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 3000,
+                      });
+                    }
+                  } else {
+                    // possibly deleted
+                    Swal.fire({
+                      icon: "warning",
+                      title: "Jmm...🤔",
+                      html: "Registro ya no existe. Recargo la info.",
+                      showConfirmButton: false,
+                      didOpen: ()=> Swal.showLoading(),
+                    });
+                    loadOrderDetails();
+                  }
+                })
+                .readOrderDetailById(detailId);
+            } else {
+              Swal.fire("Error", "No se pudo eliminar el detalle", "error");
+            }
+          })
+          .removeOrderDetail(detailId);
+      });
+
+    /**
+     * Functions to load Orders & Products into Select2
+     * You already have readOrderTable() and readProductTable().
+     */
+    function loadOrdersForSelect2() {
+      google.script.run
+        .withSuccessHandler((res)=>{
+          const data = JSON.parse(res);
+          if(data.status===200){
+            const $createOrder = $("#createOrderFk");
+            const $editOrder = $("#editOrderFk");
+            $createOrder.empty();
+            $editOrder.empty();
+            data.data.forEach(order=>{
+              // e.g. show 'ID: customer_fk' or something
+              $createOrder.append(
+                new Option(`Orden #${order.id}`, order.id, false, false)
+              );
+              $editOrder.append(
+                new Option(`Orden #${order.id}`, order.id, false, false)
+              );
+            });
+            $createOrder.trigger("change");
+            $editOrder.trigger("change");
+          }
+        })
+        .readOrderTable();
+    }
+
+    function loadProductsForSelect2() {
+      google.script.run
+        .withSuccessHandler((res)=>{
+          const data = JSON.parse(res);
+          if(data.status===200){
+            const $createProd = $("#createProductFk");
+            const $editProd = $("#editProductFk");
+            $createProd.empty();
+            $editProd.empty();
+            data.data.forEach(prod=>{
+              $createProd.append(
+                new Option(prod.name, prod.id, false, false)
+              );
+              $editProd.append(
+                new Option(prod.name, prod.id, false, false)
+              );
+            });
+            $createProd.trigger("change");
+            $editProd.trigger("change");
+          }
+        })
+        .readProductTable();
+    }
+
+     // The read button in the table
+  $("#orderDetailTable").on("click", ".readOrderDetail", function () {
+    const $row = $(this).closest("tr");
+    const rowData = orderDetailModule.orderDetailTable.row($row).data();
+    const orderId = rowData.order_id;
+    const productId = rowData.product_id;
+    console.log("Reading detail for ID:", orderId, productId);
+
+    Swal.fire({
+      title: "Búsqueda",
+      text: "¿Desea buscar la relación desde la tabla 'Order' o 'Product'?",
+      icon: "question",
+      showDenyButton: true,
+      confirmButtonText: "Order",
+      denyButtonText: "Product",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        google.script.run
+          .withSuccessHandler(displayOffcanvasResults)
+          .readOrderDetailFromOrder(orderId);
+      } else if (result.isDenied) {
+        google.script.run
+          .withSuccessHandler(displayOffcanvasResults)
+          .readOrderDetailFromProduct(productId);
+      }
+    });
+  });
+
+  // The offcanvas results logic
+  function displayOffcanvasResults(serverResponse) {
+    const data = JSON.parse(serverResponse);
+    // Save globally so we can rebuild UI when toggling
+    window.lastJunctionResults = data;
+
+    // Build initial "cards" view by default
+    buildCardsView(data);
+
+    // Show the offcanvas
+    const offcanvasEl = document.getElementById("offcanvasSearch");
+    const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
+    bsOffcanvas.show();
+  }
+
+  // Toggle button
+  $("#toggleViewBtn").on("click", function () {
+    const currentView = $(this).attr("data-view");
+    const data = window.lastJunctionResults || { data: [] };
+    if (!data || !data.data) return;
+
+    if (currentView === "cards") {
+      // Switch to JSON
+      buildJsonView(data);
+      $(this).attr("data-view", "json").text("Ver Cards");
+    } else {
+      // Switch to cards
+      buildCardsView(data);
+      $(this).attr("data-view", "cards").text("Ver JSON");
+    }
+  });
+
+  // Renders a user-friendly "cards" view
+  function buildCardsView(response) {
+    const $body = $("#offcanvasSearchBody");
+    $body.empty();
+
+    if (response.status !== 200) {
+      $body.append(`<p>Error al obtener datos: ${response.error || "Desconocido"}</p>`);
+      return;
+    }
+    if (response.data.length === 0) {
+      $body.append(`<p>No se encontraron resultados.</p>`);
+      return;
+    }
+
+    // Generate a Bootstrap card for each record
+    response.data.forEach((item, idx) => {
+      /*
+        item might look like:
+        {
+          id: 1,
+          order_id: 123,
+          product_id: 45,
+          quantity: 2,
+          created_at: "2024-01-01T00:00:00.000Z",
+          ...
+        }
+      */
+      console.log(item);
+      const cardHtml = `
+        <div class="card mb-2">
+          <div class="card-body d-flex align-items-center">
+            <div class="me-3" style="font-size: 2rem;">
+              <i class="bi bi-box-seam"></i>
+            </div>
+            <div>
+              <h5 class="card-title mb-0">Detalle #${item.id}</h5>
+              <small class="text-muted">Orden: ${item.relationship.order_id}, Producto: ${item.relationship.product_id}</small>
+              <p class="mt-2 mb-0">Cantidad: ${item.relationship.quantity}</p>
+              <p class="mb-0">Creado en: ${item.relationship.created_at || "N/A"}</p>
+            </div>
+          </div>
+        </div>`;
+      $body.append(cardHtml);
+    });
+  }
+
+  // Renders a <pre> with raw JSON
+  function buildJsonView(response) {
+    const $body = $("#offcanvasSearchBody");
+    $body.empty();
+
+    if (response.status !== 200) {
+      $body.append(`<p>Error al obtener datos: ${response.error || "Desconocido"}</p>`);
+      return;
+    }
+    if (response.data.length === 0) {
+      $body.append(`<p>No se encontraron resultados.</p>`);
+      return;
+    }
+
+    const pre = $("<pre></pre>").text(JSON.stringify(response.data, null, 2));
+    $body.append(pre);
+  }
+
+    function defaultLoadingSwalToast(reason) {
+        let loadingToast = Swal.mixin({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 10000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+                Swal.showLoading();
+            }
+        })
+        loadingToast.fire({
+            icon: "info",
+            title: "Dejame Pensar🤓",
+            html: `Dame un momento mientras ${reason}`,
+        })
+    }
+    });
+</script>

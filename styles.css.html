@@ -1,0 +1,421 @@
+<style>
+  :root {
+    /* Primary UI font - Using Inter as an example */
+    --bs-body-font-family: "Inter", system-ui, -apple-system, sans-serif;
+
+    /* For monospace/code elements */
+    --font-mono: "JetBrains Mono", ui-monospace, "Courier New", monospace;
+
+    /* Font feature settings for better rendering */
+    font-feature-settings: "cv02", "cv03", "cv04", "calt"0;
+    text-rendering: optimizeLegibility;
+    /* Basic page colors */
+    --bs-body-bg: #282A36;
+    /* Background */
+    --bs-body-color: #F8F8F2;
+    /* Foreground text */
+    --bs-link-color: #8BE9FD;
+    /* Links: using Cyan */
+
+    /* Semantic colors */
+    --bs-primary: #BD93F9;
+    /* Purple as the "primary" color */
+    --bs-secondary: #6272A4;
+    /* Comment as secondary or accent */
+    --bs-success: #50FA7B;
+    /* Green */
+    --bs-info: #8BE9FD;
+    /* Cyan */
+    --bs-warning: #F1FA8C;
+    /* Yellow */
+    --bs-danger: #FF5555;
+    /* Red */
+    --c-purple-b: #BD93F9;
+
+    --c-success-s: rgba(80, 250, 123, 0.2);
+    /* Green with opacity */
+    --c-danger-s: rgba(255, 85, 85, 0.2);
+    /* Red with opacity */
+    --c-warning-s: rgba(241, 250, 140, 0.2);
+    /* Yellow with opacity */
+    --c-info-s: rgba(139, 233, 253, 0.2);
+    /* Cyan with opacity */
+    --c-purple-s: rgba(189, 147, 249, 0.2);
+    /* Purple with opacity */
+    --c-purple-mid: rgba(189, 147, 249, 0.5);
+    /* Purple with more opacity */
+
+    /* Optionally override light/dark */
+    --bs-light: #44475A;
+    /* Current line as "light" background */
+    --bs-dark: #191A21;
+    /* or #1E2029, a custom darker shade */
+
+    /* Other commonly used variables */
+    --bs-border-color: #44475A;
+    /* default border color if you want to unify */
+
+    /* You can also override gray scale if needed */
+    --bs-gray-100: #44475A;
+    --bs-gray-200: #505266;
+    --bs-gray-300: #6272A4;
+    --bs-gray-400: #6C6F93;
+    --bs-gray-500: #787BA2;
+    --bs-gray-600: #8A8DA6;
+    --bs-gray-700: #9297B0;
+    --bs-gray-800: #A1A7C1;
+    --bs-gray-900: #BCC2E0;
+  }
+
+  /* Select 2 Dark Theme */
+  /* html[data-bs-theme="dark"] .select2-container--default .select2-selection--single {
+      background-color: #212529 !important;
+  }
+
+      html[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
+          color: #fff !important;
+      }
+
+  html[data-bs-theme="dark"] .select2-dropdown {
+      background-color: #212529 !important;
+  }
+
+  html[data-bs-theme="dark"] .select2-container--default .select2-results__option[aria-selected=true] {
+      background-color: black !important;
+  } */
+
+  .select2-search {
+    background-color: #343A40 !important;
+  }
+
+  /* Change the appearence of the search input field */
+  .select2-search input {
+    color: #ffffff !important;
+    background-color: #343A40 !important;
+  }
+
+  /* Change the appearence of the search results container */
+  .select2-results {
+    background-color: #343A40 !important;
+  }
+
+  /* Change the appearence of the dropdown select container */
+  .select2-container--bootstrap-5 .select2-selection {
+    border-color: #6c757d !important;
+    color: #ffffff !important;
+    background-color: #343A40 !important;
+  }
+
+  /* Change the caret down arrow symbol to white */
+  /* .select2-container--bootstrap-5 .select2-selection--single {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+  } */
+
+  /* Change the color of the default selected item i.e. the first option */
+  .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: #ffffff !important;
+  }
+
+  .nav-link:hover {
+    cursor: pointer;
+    background-color: var(--bs-light);
+    /* any highlight color */
+  }
+
+  .text-primary {
+    color: var(--bs-primary) !important;
+  }
+
+  .text-responsive {
+    font-size: 1.25rem;
+    /* Default on medium+ screens */
+  }
+
+  /* On small screens (<576px) */
+  @media (max-width: 575.98px) {
+    .text-responsive {
+      font-size: 0.75rem;
+    }
+  }
+
+  /* On large screens (>=992px) you could go bigger, etc. */
+  @media (min-width: 992px) {
+    .text-responsive {
+      font-size: 1rem;
+    }
+  }
+
+
+  /* Base body text */
+  body {
+    font-family: var(--bs-body-font-family);
+    font-weight: 400;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headers */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    /* Slightly tighter spacing for headlines */
+  }
+
+  .carousel-c {
+    position: relative;
+  }
+
+  .mt-6 {
+    margin-top: 5rem;
+  }
+
+  .carousel-c .carousel-control-prev,
+  .carousel-c .carousel-control-next {
+    position: absolute;
+    top: 0;
+    bottom: auto;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    /* opacity: 1; */
+  }
+
+  /* Preserve monospace font for code elements */
+  code,
+  pre,
+  .assertion-detail {
+    font-family: var(--font-mono);
+    font-feature-settings: "liga"1, "calt"1;
+  }
+
+  /* Test names and module names */
+  .test-header h5 {
+    font-weight: 500;
+    /* Medium weight for better hierarchy */
+    letter-spacing: -0.01em;
+  }
+
+  /* Status badges and metadata */
+  .badge,
+  .runtime {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    /* Slightly looser for better readability */
+  }
+
+  /* 
+   Base styling for our custom buttons:
+   - We'll rely on the --bs-* variables from your :root to match the Dracula theme.
+   - We create a base "btn-custom" that .btn-regular and .btn-rounded can share.
+*/
+
+  .btn-custom {
+    display: inline-block;
+    font-family: var(--bs-body-font-family, sans-serif);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+
+    /* Default background and color (e.g. primary) */
+    background-color: var(--bs-primary);
+    color: #fff;
+
+    /* Smooth hover transitions */
+    transition: background-color 0.15s ease, border-color 0.15s ease color 0.15s ease;
+  }
+
+  .btn-custom-outline {
+    display: inline-block;
+    font-family: var(--bs-body-font-family, sans-serif);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+
+    border: 1px solid transparent;
+    /* Transparent background by default */
+    background-color: transparent;
+
+    /* Smooth hover transitions */
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  /*-----------------------------------
+  Primary Outline
+------------------------------------*/
+  .btn-primary-outline {
+    color: var(--bs-primary);
+    border-color: var(--bs-primary);
+  }
+
+  .btn-primary-outline:hover {
+    background-color: var(--bs-primary);
+    color: #fff;
+    /* ensure good contrast on hover */
+  }
+
+  /*-----------------------------------
+  Secondary Outline
+------------------------------------*/
+  .btn-secondary-outline {
+    color: var(--bs-secondary);
+    border-color: var(--bs-secondary);
+  }
+
+  .btn-secondary-outline:hover {
+    background-color: var(--bs-secondary);
+    color: #fff;
+  }
+
+  /*-----------------------------------
+  Success (Green) Outline
+------------------------------------*/
+  .btn-success-outline {
+    color: var(--bs-success);
+    border-color: var(--bs-success);
+  }
+
+  .btn-success-outline:hover {
+    background-color: var(--c-success-s);
+    color: var(--bs-success);
+    /* or #000 for contrast */
+  }
+
+  /*-----------------------------------
+  Danger (Red) Outline
+------------------------------------*/
+  .btn-danger-outline {
+    color: var(--bs-danger);
+    border-color: var(--bs-danger);
+  }
+
+  .btn-danger-outline:hover {
+    background-color: var(--c-danger-s);
+    color: var(--c-danger-b);
+  }
+
+  /*-----------------------------------
+  Info (Cyan) Outline
+------------------------------------*/
+  .btn-info-outline {
+    color: var(--bs-info);
+    border-color: var(--bs-info);
+  }
+
+  .btn-info-outline:hover {
+    background-color: var(--c-info-s);
+    color: var(--c-info-b);
+  }
+
+  /*-----------------------------------
+  Warning (Yellow) Outline
+------------------------------------*/
+  .btn-warning-outline {
+    color: var(--bs-warning);
+    border-color: var(--bs-warning);
+  }
+
+  .btn-warning-outline:hover {
+    background-color: var(--c-warning-s);
+    color: var(--c-warning-b);
+  }
+
+
+
+  /* Square corners (or slight rounding, up to you) */
+  .btn-regular {
+    border-radius: 0.25rem;
+    /* typical Bootstrap radius */
+  }
+
+  /* Fully rounded/pill style */
+  .btn-rounded {
+    border-radius: 999px;
+    /* pill shape */
+  }
+
+
+  /* If you want separate color variants, 
+   we can rely on your existing --bs-* variables: */
+
+  /* Purple */
+  .btn-primary {
+    background-color: var(--bs-primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background-color: #966BE4;
+  }
+
+  /* Secondary (Dracula "comment" color) */
+  .btn-secondary {
+    background-color: var(--bs-secondary);
+    color: #fff;
+  }
+
+  .btn-secondary:hover {
+    background-color: #505266;
+    /* slightly darker than #6272A4 */
+  }
+
+  /* Success (Green) */
+  .btn-success {
+    background-color: var(--bs-success);
+    color: #282A36;
+    /* or #000 if you prefer */
+  }
+
+  .btn-success:hover {
+    background-color: #3FC065;
+    /* custom darker/lighter green */
+  }
+
+  /* Danger (Red) */
+  .btn-danger {
+    background-color: var(--bs-danger);
+    color: #fff;
+  }
+
+  .btn-danger:hover {
+    background-color: #E03737;
+    /* slightly darker than #FF5555 */
+  }
+
+  /* Info (Cyan) */
+  .btn-info {
+    background-color: var(--bs-info);
+    color: #282A36;
+  }
+
+  .btn-info:hover {
+    background-color: #60d7eb;
+    /* adjust as needed */
+  }
+
+  /* Warning (Yellow) */
+  .btn-warning {
+    background-color: var(--bs-warning);
+    color: #282A36;
+  }
+
+  .btn-warning:hover {
+    background-color: #dcd66f;
+  }
+</style>

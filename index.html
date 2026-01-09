@@ -1,10 +1,55 @@
 <!DOCTYPE html>
-<html data-bs-theme="dark" class="dark">
+<html class="dark">
 
 <head>
   <base target="_top">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- Tailwind CSS v4 CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            border: "hsl(var(--border))",
+            input: "hsl(var(--input))",
+            ring: "hsl(var(--ring))",
+            background: "hsl(var(--background))",
+            foreground: "hsl(var(--foreground))",
+            primary: {
+              DEFAULT: "hsl(var(--primary))",
+              foreground: "hsl(var(--primary-foreground))",
+            },
+            secondary: {
+              DEFAULT: "hsl(var(--secondary))",
+              foreground: "hsl(var(--secondary-foreground))",
+            },
+            destructive: {
+              DEFAULT: "hsl(var(--destructive))",
+              foreground: "hsl(var(--destructive-foreground))",
+            },
+            muted: {
+              DEFAULT: "hsl(var(--muted))",
+              foreground: "hsl(var(--muted-foreground))",
+            },
+            accent: {
+              DEFAULT: "hsl(var(--accent))",
+              foreground: "hsl(var(--accent-foreground))",
+            },
+            card: {
+              DEFAULT: "hsl(var(--card))",
+              foreground: "hsl(var(--card-foreground))",
+            },
+          },
+          borderRadius: {
+            lg: "var(--radius)",
+            md: "calc(var(--radius) - 2px)",
+            sm: "calc(var(--radius) - 4px)",
+          },
+        },
+      },
+    }
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,16 +59,14 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css" />
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.2.2/dist/select2-bootstrap-5-theme.min.css"
-    rel="stylesheet" />
   <?!= include("styles.css");?>
 </head>
 
 <body>
 
   <!-- Top Navbar (Brand + Offcanvas Toggle) -->
-  <nav class="navbar navbar-dark bg-dark">
-    <div class="container-fluid">
+  <nav class="navbar">
+    <div class="w-full px-4">
       <!-- Brand -->
       <a class="navbar-brand" href="#">CRUD LIB. TEST</a>
 
@@ -41,11 +84,11 @@
     </div>
   </nav>
 
-  <div class="container-fluid">
-    <div class="row">
+  <div class="w-full px-4">
+    <div class="flex">
 
       <!-- Offcanvas Sidebar -->
-      <div class="offcanvas offcanvas-start text-bg-dark" tabindex="-1" id="offcanvasSidebar"
+      <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasSidebar"
         aria-labelledby="offcanvasSidebarLabel">
         <div class="offcanvas-header">
           <h5 class="offcanvas-title" id="offcanvasSidebarLabel">
@@ -59,30 +102,35 @@
             ></button>
         </div>
         <div class="offcanvas-body">
-          <ul class="nav flex-column">
-            <li class="nav-item mb-2" data-module="categoryModule">
+          <ul class="nav">
+            <li class="nav-item" data-module="categoryModule">
               <span class="nav-link active text-primary">
-                <i class="bi bi-diagram-3 me-2"></i> Categorias
+                <i class="bi bi-diagram-3 mr-2"></i> Categorias
               </span>
             </li>
-            <li class="nav-item mb-2" data-module="orderModule">
+            <li class="nav-item" data-module="orderModule">
               <span class="nav-link text-primary">
-                <i class="bi bi-file-earmark me-2"></i> Ordenes
+                <i class="bi bi-file-earmark mr-2"></i> Ordenes
               </span>
             </li>
-            <li class="nav-item mb-2" data-module="productModule">
+            <li class="nav-item" data-module="productModule">
               <span class="nav-link text-primary">
-                <i class="bi bi-cart4 me-2"></i> Productos
+                <i class="bi bi-cart4 mr-2"></i> Productos
               </span>
             </li>
-            <li class="nav-item mb-2" data-module="customerModule">
+            <li class="nav-item" data-module="customerModule">
               <span class="nav-link text-primary">
-                <i class="bi bi-people me-2"></i> Clientes
+                <i class="bi bi-people mr-2"></i> Clientes
               </span>
             </li>
-            <li class="nav-item mb-2" data-module="orderDetailModule">
+            <li class="nav-item" data-module="orderDetailModule">
               <span class="nav-link text-primary">
-                <i class="bi bi-card-checklist me-2"></i> Detalle de Orden
+                <i class="bi bi-card-checklist mr-2"></i> Detalle de Orden
+              </span>
+            </li>
+            <li class="nav-item" data-module="advancedFeaturesModule">
+              <span class="nav-link text-primary">
+                <i class="bi bi-gear-fill mr-2"></i> Advanced Features
               </span>
             </li>
           </ul>
@@ -107,9 +155,9 @@
           ></button>
         </div>
 
-        <div class="offcanvas-body d-flex flex-column">
+        <div class="offcanvas-body flex flex-flex-1">
           <!-- Toggle button -->
-          <div class="mb-3 text-end">
+          <div class="mb-3 text-right">
             <button
               class="btn btn-sm btn-outline-primary"
               id="toggleViewBtn"
@@ -142,9 +190,9 @@
             aria-label="Close"
           ></button>
         </div>
-        <div class="offcanvas-body d-flex flex-column">
+        <div class="offcanvas-body flex flex-flex-1">
           <!-- Toggle button -->
-          <div class="mb-3 text-end">
+          <div class="mb-3 text-right">
             <button
               class="btn btn-sm btn-outline-primary"
               id="toggleViewBtnCategory"
@@ -177,9 +225,9 @@
             aria-label="Close"
           ></button>
         </div>
-        <div class="offcanvas-body d-flex flex-column">
+        <div class="offcanvas-body flex flex-flex-1">
           <!-- Toggle button -->
-          <div class="mb-3 text-end">
+          <div class="mb-3 text-right">
             <button
               class="btn btn-sm btn-outline-primary"
               id="toggleViewBtnCustomer"
@@ -197,39 +245,39 @@
 
 
       <!-- Main Content -->
-      <div class="col p-4">
+      <div class="flex-1 p-4">
         <div id="categoryModule" class="carousel slide carousel-c module">
           <!-- START of carousel-inner -->
           <div class="carousel-inner">
             <!-- 1) Categories List -->
             <div class="carousel-item active">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
-                      <div class="card-header d-flex justify-content-between align-items-center">
+                      <div class="card-header flex justify-between items-center">
                         <h4 class="card-title">Lista de Categorias</h4>
-                        <div class="btn-group d-flex flex-wrap ms-auto" role="group">
+                        <div class="btn-group flex flex-wrap ml-auto" role="group">
                           <button
                       type="button"
-                      class="btn-custom-outline btn-success-outline btn-rounded"
+                      class="btn btn-outline-success btn-rounded"
                       id="createNewCategory"
                     >
-                      <i class="bi bi-plus-circle-fill me-2"></i>
+                      <i class="bi bi-plus-circle-fill mr-2"></i>
                       <span class="text-responsive"> Una Categoria</span>
                     </button>
                           <button
                       type="button"
-                      class="btn-custom-outline btn-secondary-outline btn-rounded"
+                      class="btn btn-outline-secondary btn-rounded"
                       id="refreshCategoryTable"
                     >
-                      <i class="bi bi-arrow-clockwise me-2"></i>
+                      <i class="bi bi-arflex-clockwise mr-2"></i>
                       <span class="text-responsive">Recargar</span>
                     </button>
                         </div>
                       </div>
                       <div class="card-body">
-                        <div class="table-responsive">
+                        <div class="overflow-x-auto">
                           <table id="categoryTable" class="display table table-striped table-hover table-bordered">
                             <thead>
                               <tr>
@@ -251,9 +299,9 @@
 
             <!-- 2) Create Category Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Crear Nueva Categoría</h4>
@@ -286,13 +334,13 @@
 
                           <button
                       type="submit"
-                      class="btn-custom-outline btn-success-outline btn-rounded"
+                      class="btn btn-outline-success btn-rounded"
                     >
-                      <i class="bi bi-save me-2"></i> Guardar
+                      <i class="bi bi-save mr-2"></i> Guardar
                     </button>
                           <button
                       type="button"
-                      class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                      class="btn btn-outline-secondary btn-rounded ml-2"
                       data-bs-target="#categoryModule"
                       data-bs-slide="prev"
                     >
@@ -308,9 +356,9 @@
 
             <!-- 3) Edit Category Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Editar Categoría</h4>
@@ -346,13 +394,13 @@
 
                           <button
                       type="submit"
-                      class="btn-custom-outline btn-warning-outline btn-rounded"
+                      class="btn btn-outline-warning btn-rounded"
                     >
-                      <i class="bi bi-save me-2"></i> Actualizar
+                      <i class="bi bi-save mr-2"></i> Actualizar
                     </button>
                           <button
                       type="button"
-                      class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                      class="btn btn-outline-secondary btn-rounded ml-2"
                       data-bs-target="#categoryModule"
                       data-bs-slide="prev"
                     >
@@ -369,7 +417,7 @@
           <!-- END of carousel-inner -->
 
           <button
-      class="carousel-control-prev btn-custom-outline btn-primary-outline"
+      class="carousel-control-prev btn btn-outline-primary"
       type="button"
       data-bs-target="#categoryModule"
       data-bs-slide="prev"
@@ -377,7 +425,7 @@
       <i class="bi bi-caret-left"></i>
     </button>
           <button
-      class="carousel-control-next btn-custom-outline btn-primary-outline"
+      class="carousel-control-next btn btn-outline-primary"
       type="button"
       data-bs-target="#categoryModule"
       data-bs-slide="next"
@@ -391,33 +439,33 @@
 
             <!-- 1) Orders List -->
             <div class="carousel-item active">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
-                      <div class="card-header d-flex justify-content-between align-items-center">
+                      <div class="card-header flex justify-between items-center">
                         <h4 class="card-title">Lista de Órdenes</h4>
-                        <div class="btn-group d-flex flex-wrap ms-auto" role="group">
+                        <div class="btn-group flex flex-wrap ml-auto" role="group">
                           <button
                     type="button"
-                    class="btn-custom-outline btn-success-outline btn-rounded"
+                    class="btn btn-outline-success btn-rounded"
                     id="createNewOrder"
                   >
-                    <i class="bi bi-plus-circle-fill me-2"></i>
+                    <i class="bi bi-plus-circle-fill mr-2"></i>
                     <span class="text-responsive">Nueva Orden</span>
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded"
+                    class="btn btn-outline-secondary btn-rounded"
                     id="refreshOrderTable"
                   >
-                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    <i class="bi bi-arflex-clockwise mr-2"></i>
                     <span class="text-responsive">Recargar</span>
                   </button>
                         </div>
                       </div>
                       <div class="card-body">
-                        <div class="table-responsive">
+                        <div class="overflow-x-auto">
                           <table id="orderTable" class="display table table-striped table-hover table-bordered">
                             <thead>
                               <tr>
@@ -440,9 +488,9 @@
 
             <!-- 2) Create Order Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Crear Nueva Orden</h4>
@@ -473,13 +521,13 @@
 
                           <button
                     type="submit"
-                    class="btn-custom-outline btn-success-outline btn-rounded"
+                    class="btn btn-outline-success btn-rounded"
                   >
-                    <i class="bi bi-save me-2"></i> Guardar
+                    <i class="bi bi-save mr-2"></i> Guardar
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                    class="btn btn-outline-secondary btn-rounded ml-2"
                     data-bs-target="#orderModule"
                     data-bs-slide="prev"
                   >
@@ -496,9 +544,9 @@
 
             <!-- 3) Edit Order Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Editar Orden</h4>
@@ -532,13 +580,13 @@
 
                           <button
                     type="submit"
-                    class="btn-custom-outline btn-warning-outline btn-rounded"
+                    class="btn btn-outline-warning btn-rounded"
                   >
-                    <i class="bi bi-save me-2"></i> Actualizar
+                    <i class="bi bi-save mr-2"></i> Actualizar
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                    class="btn btn-outline-secondary btn-rounded ml-2"
                     data-bs-target="#orderModule"
                     data-bs-slide="prev"
                   >
@@ -558,7 +606,7 @@
 
           <!-- Carousel Controls -->
           <button
-    class="carousel-control-prev btn-custom-outline btn-primary-outline"
+    class="carousel-control-prev btn btn-outline-primary"
     type="button"
     data-bs-target="#orderModule"
     data-bs-slide="prev"
@@ -566,7 +614,7 @@
     <i class="bi bi-caret-left"></i>
   </button>
           <button
-    class="carousel-control-next btn-custom-outline btn-primary-outline"
+    class="carousel-control-next btn btn-outline-primary"
     type="button"
     data-bs-target="#orderModule"
     data-bs-slide="next"
@@ -580,33 +628,33 @@
 
             <!-- 1) Products List -->
             <div class="carousel-item active">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
-                      <div class="card-header d-flex justify-content-between align-items-center">
+                      <div class="card-header flex justify-between items-center">
                         <h4 class="card-title">Lista de Productos</h4>
-                        <div class="btn-group d-flex flex-wrap ms-auto" role="group">
+                        <div class="btn-group flex flex-wrap ml-auto" role="group">
                           <button
                     type="button"
-                    class="btn-custom-outline btn-success-outline btn-rounded"
+                    class="btn btn-outline-success btn-rounded"
                     id="createNewProduct"
                   >
-                    <i class="bi bi-plus-circle-fill me-2"></i>
+                    <i class="bi bi-plus-circle-fill mr-2"></i>
                     <span class="text-responsive">Crear Producto</span>
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded"
+                    class="btn btn-outline-secondary btn-rounded"
                     id="refreshProductTable"
                   >
-                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    <i class="bi bi-arflex-clockwise mr-2"></i>
                     <span class="text-responsive">Recargar</span>
                   </button>
                         </div>
                       </div>
                       <div class="card-body">
-                        <div class="table-responsive">
+                        <div class="overflow-x-auto">
                           <table id="productTable" class="display table table-striped table-hover table-bordered">
                             <thead>
                               <tr>
@@ -630,9 +678,9 @@
 
             <!-- 2) Create Product Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Crear Nuevo Producto</h4>
@@ -698,13 +746,13 @@
 
                           <button
                     type="submit"
-                    class="btn-custom-outline btn-success-outline btn-rounded"
+                    class="btn btn-outline-success btn-rounded"
                   >
-                    <i class="bi bi-save me-2"></i> Guardar
+                    <i class="bi bi-save mr-2"></i> Guardar
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                    class="btn btn-outline-secondary btn-rounded ml-2"
                     data-bs-target="#productModule"
                     data-bs-slide="prev"
                   >
@@ -721,9 +769,9 @@
 
             <!-- 3) Edit Product Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Editar Producto</h4>
@@ -791,13 +839,13 @@
 
                           <button
                     type="submit"
-                    class="btn-custom-outline btn-warning-outline btn-rounded"
+                    class="btn btn-outline-warning btn-rounded"
                   >
-                    <i class="bi bi-save me-2"></i> Actualizar
+                    <i class="bi bi-save mr-2"></i> Actualizar
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                    class="btn btn-outline-secondary btn-rounded ml-2"
                     data-bs-target="#productModule"
                     data-bs-slide="prev"
                   >
@@ -817,7 +865,7 @@
 
           <!-- Carousel Controls -->
           <button
-    class="carousel-control-prev btn-custom-outline btn-primary-outline"
+    class="carousel-control-prev btn btn-outline-primary"
     type="button"
     data-bs-target="#productModule"
     data-bs-slide="prev"
@@ -825,7 +873,7 @@
     <i class="bi bi-caret-left"></i>
   </button>
           <button
-    class="carousel-control-next btn-custom-outline btn-primary-outline"
+    class="carousel-control-next btn btn-outline-primary"
     type="button"
     data-bs-target="#productModule"
     data-bs-slide="next"
@@ -839,33 +887,33 @@
 
             <!-- 1) Customers List -->
             <div class="carousel-item active">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
-                      <div class="card-header d-flex justify-content-between align-items-center">
+                      <div class="card-header flex justify-between items-center">
                         <h4 class="card-title">Lista de Clientes</h4>
-                        <div class="btn-group d-flex flex-wrap ms-auto" role="group">
+                        <div class="btn-group flex flex-wrap ml-auto" role="group">
                           <button
                     type="button"
-                    class="btn-custom-outline btn-success-outline btn-rounded"
+                    class="btn btn-outline-success btn-rounded"
                     id="createNewCustomer"
                   >
-                    <i class="bi bi-plus-circle-fill me-2"></i>
+                    <i class="bi bi-plus-circle-fill mr-2"></i>
                     <span class="text-responsive">Crear Cliente</span>
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded"
+                    class="btn btn-outline-secondary btn-rounded"
                     id="refreshCustomerTable"
                   >
-                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    <i class="bi bi-arflex-clockwise mr-2"></i>
                     <span class="text-responsive">Recargar</span>
                   </button>
                         </div>
                       </div>
                       <div class="card-body">
-                        <div class="table-responsive">
+                        <div class="overflow-x-auto">
                           <table id="customerTable" class="display table table-striped table-hover table-bordered">
                             <thead>
                               <tr>
@@ -890,9 +938,9 @@
 
             <!-- 2) Create Customer Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Crear Nuevo Cliente</h4>
@@ -968,13 +1016,13 @@
 
                           <button
                     type="submit"
-                    class="btn-custom-outline btn-success-outline btn-rounded"
+                    class="btn btn-outline-success btn-rounded"
                   >
-                    <i class="bi bi-save me-2"></i> Guardar
+                    <i class="bi bi-save mr-2"></i> Guardar
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                    class="btn btn-outline-secondary btn-rounded ml-2"
                     data-bs-target="#customerModule"
                     data-bs-slide="prev"
                   >
@@ -991,9 +1039,9 @@
 
             <!-- 3) Edit Customer Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Editar Cliente</h4>
@@ -1072,13 +1120,13 @@
 
                           <button
                     type="submit"
-                    class="btn-custom-outline btn-warning-outline btn-rounded"
+                    class="btn btn-outline-warning btn-rounded"
                   >
-                    <i class="bi bi-save me-2"></i> Actualizar
+                    <i class="bi bi-save mr-2"></i> Actualizar
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                    class="btn btn-outline-secondary btn-rounded ml-2"
                     data-bs-target="#customerModule"
                     data-bs-slide="prev"
                   >
@@ -1098,7 +1146,7 @@
 
           <!-- Carousel Controls -->
           <button
-    class="carousel-control-prev btn-custom-outline btn-primary-outline"
+    class="carousel-control-prev btn btn-outline-primary"
     type="button"
     data-bs-target="#customerModule"
     data-bs-slide="prev"
@@ -1106,7 +1154,7 @@
     <i class="bi bi-caret-left"></i>
   </button>
           <button
-    class="carousel-control-next btn-custom-outline btn-primary-outline"
+    class="carousel-control-next btn btn-outline-primary"
     type="button"
     data-bs-target="#customerModule"
     data-bs-slide="next"
@@ -1119,33 +1167,33 @@
 
             <!-- 1) OrderDetail List -->
             <div class="carousel-item active">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
-                      <div class="card-header d-flex justify-content-between align-items-center">
+                      <div class="card-header flex justify-between items-center">
                         <h4 class="card-title">Lista de Detalles de Órdenes</h4>
-                        <div class="btn-group d-flex flex-wrap ms-auto" role="group">
+                        <div class="btn-group flex flex-wrap ml-auto" role="group">
                           <button
                     type="button"
-                    class="btn-custom-outline btn-success-outline btn-rounded"
+                    class="btn btn-outline-success btn-rounded"
                     id="createNewOrderDetail"
                   >
-                    <i class="bi bi-plus-circle-fill me-2"></i>
+                    <i class="bi bi-plus-circle-fill mr-2"></i>
                     <span class="text-responsive">Crear Detalle</span>
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded"
+                    class="btn btn-outline-secondary btn-rounded"
                     id="refreshOrderDetailTable"
                   >
-                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    <i class="bi bi-arflex-clockwise mr-2"></i>
                     <span class="text-responsive">Recargar</span>
                   </button>
                         </div>
                       </div>
                       <div class="card-body">
-                        <div class="table-responsive">
+                        <div class="overflow-x-auto">
                           <table id="orderDetailTable" class="display table table-striped table-hover table-bordered">
                             <thead>
                               <tr>
@@ -1169,9 +1217,9 @@
 
             <!-- 2) Create OrderDetail Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Crear Detalle de Orden</h4>
@@ -1225,13 +1273,13 @@
 
                           <button
                     type="submit"
-                    class="btn-custom-outline btn-success-outline btn-rounded"
+                    class="btn btn-outline-success btn-rounded"
                   >
-                    <i class="bi bi-save me-2"></i> Guardar
+                    <i class="bi bi-save mr-2"></i> Guardar
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                    class="btn btn-outline-secondary btn-rounded ml-2"
                     data-bs-target="#orderDetailModule"
                     data-bs-slide="prev"
                   >
@@ -1248,9 +1296,9 @@
 
             <!-- 3) Edit OrderDetail Form -->
             <div class="carousel-item">
-              <div class="container-fluid mt-6">
-                <div class="row">
-                  <div class="col">
+              <div class="w-full mt-20">
+                <div class="flex">
+                  <div class="flex-1">
                     <div class="card">
                       <div class="card-header">
                         <h4 class="card-title mb-0">Editar Detalle de Orden</h4>
@@ -1307,13 +1355,13 @@
 
                           <button
                     type="submit"
-                    class="btn-custom-outline btn-warning-outline btn-rounded"
+                    class="btn btn-outline-warning btn-rounded"
                   >
-                    <i class="bi bi-save me-2"></i> Actualizar
+                    <i class="bi bi-save mr-2"></i> Actualizar
                   </button>
                           <button
                     type="button"
-                    class="btn-custom-outline btn-secondary-outline btn-rounded ms-2"
+                    class="btn btn-outline-secondary btn-rounded ml-2"
                     data-bs-target="#orderDetailModule"
                     data-bs-slide="prev"
                   >
@@ -1333,7 +1381,7 @@
 
           <!-- Carousel Controls -->
           <button
-    class="carousel-control-prev btn-custom-outline btn-primary-outline"
+    class="carousel-control-prev btn btn-outline-primary"
     type="button"
     data-bs-target="#orderDetailModule"
     data-bs-slide="prev"
@@ -1341,13 +1389,115 @@
     <i class="bi bi-caret-left"></i>
   </button>
           <button
-    class="carousel-control-next btn-custom-outline btn-primary-outline"
+    class="carousel-control-next btn btn-outline-primary"
     type="button"
     data-bs-target="#orderDetailModule"
     data-bs-slide="next"
   >
     <i class="bi bi-caret-right"></i>
   </button>
+        </div>
+
+        <!-- ========================================= -->
+        <!-- MODULE 6: Advanced Features -->
+        <!-- ========================================= -->
+        <div id="advancedFeaturesModule" class="carousel slide carousel-c module" style="display:none;">
+          <div class="carousel-inner">
+            <!-- Main View -->
+            <div class="carousel-item active">
+              <div class="w-full mt-20">
+                <h2 class="mb-4">Advanced Features Testing</h2>
+
+                <!-- Section 1: Debugging & Logging -->
+                <div class="card mb-3">
+                  <div class="card-header"><i class="bi bi-bug-fill mr-2"></i>Debugging & Logging</div>
+                  <div class="card-body">
+                    <div class="btn-group mb-2" role="group">
+                      <button id="testUpdateWithLogs" class="btn btn-primary btn-sm">
+                        <i class="bi bi-pencil-square mr-1"></i>Update with Logs
+                      </button>
+                      <button id="testGetRelatedWithLogs" class="btn btn-primary btn-sm">
+                        <i class="bi bi-link-45deg mr-1"></i>Get Related with Logs
+                      </button>
+                      <button id="testGetCreationResult" class="btn btn-primary btn-sm">
+                        <i class="bi bi-table mr-1"></i>Get Creation Result
+                      </button>
+                    </div>
+                    <pre id="debugOutput" class="mt-3 p-2 max-h-[200px] overflow-y-auto text-sm"></pre>
+                  </div>
+                </div>
+
+                <!-- Section 2: Data Integrity -->
+                <div class="card mb-3">
+                  <div class="card-header"><i class="bi bi-shield-check mr-2"></i>Data Integrity</div>
+                  <div class="card-body">
+                    <div class="btn-group mb-2" role="group">
+                      <button id="testCheckIntegrity" class="btn btn-warning btn-sm">
+                        <i class="bi bi-check-circle mr-1"></i>Check Junction Integrity
+                      </button>
+                      <button id="testDeleteJunctionRecords" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash mr-1"></i>Delete Junction Records
+                      </button>
+                    </div>
+                    <pre id="integrityOutput" class="mt-3 p-2 max-h-[200px] overflow-y-auto text-sm"></pre>
+                  </div>
+                </div>
+
+                <!-- Section 3: Query Alternatives -->
+                <div class="card mb-3">
+                  <div class="card-header"><i class="bi bi-search mr-2"></i>Query Alternatives</div>
+                  <div class="card-body">
+                    <div class="mb-2">
+                      <input type="number" id="queryForeignKey" placeholder="Enter Category ID" class="form-control btn-sm" />
+                    </div>
+                    <div class="btn-group mb-2" role="group">
+                      <button id="testTextFinder" class="btn btn-info btn-sm">
+                        <i class="bi bi-search mr-1"></i>Query with TextFinder
+                      </button>
+                      <button id="testFilterMethod" class="btn btn-info btn-sm">
+                        <i class="bi bi-funnel mr-1"></i>Query with Filter
+                      </button>
+                      <button id="testNormalMethod" class="btn btn-success btn-sm">
+                        <i class="bi bi-lightning mr-1"></i>Query Normal (Fast)
+                      </button>
+                    </div>
+                    <pre id="queryOutput" class="mt-3 p-2 max-h-[200px] overflow-y-auto text-sm"></pre>
+                  </div>
+                </div>
+
+                <!-- Section 4: Visual Styling -->
+                <div class="card mb-3">
+                  <div class="card-header"><i class="bi bi-palette-fill mr-2"></i>Visual Styling</div>
+                  <div class="card-body">
+                    <div class="flex gap-2 mb-2">
+                      <div class="flex-1">
+                        <select id="styleTableName" class="form-select btn-sm">
+                          <option value="CATEGORY">CATEGORY</option>
+                          <option value="PRODUCT">PRODUCT</option>
+                          <option value="CUSTOMER">CUSTOMER</option>
+                          <option value="ORDER">ORDER</option>
+                          <option value="ORDER_DETAIL">ORDER_DETAIL</option>
+                        </select>
+                      </div>
+                      <div class="flex-1">
+                        <select id="styleColorScheme" class="form-select btn-sm">
+                          <option value="red">Red</option>
+                          <option value="blue">Blue</option>
+                          <option value="green">Green</option>
+                          <option value="orange">Orange</option>
+                          <option value="purple">Purple</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button id="applyColorScheme" class="btn btn-success btn-sm">
+                      <i class="bi bi-brush mr-1"></i>Apply Color Scheme
+                    </button>
+                    <pre id="styleOutput" class="mt-3 p-2 max-h-[100px] overflow-y-auto text-sm"></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

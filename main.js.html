@@ -1527,5 +1527,275 @@
             html: `Dame un momento mientras ${reason}`,
         })
     }
+
+    /****************************************************
+     * Advanced Features Module Logic
+     ****************************************************/
+    const advancedFeaturesModule = {
+        queryTimes: {
+            normal: null,
+            textFinder: null,
+            filter: null
+        }
+    };
+
+    // ========== Debugging & Logging Tests ==========
+
+    $("#testUpdateWithLogs").on("click", function () {
+        // Get first category and update it with logs
+        google.script.run
+            .withSuccessHandler((response) => {
+                const data = JSON.parse(response);
+                if (data.status === 200 && data.data.length > 0) {
+                    const firstCat = data.data[0];
+                    // Update it with logs
+                    defaultLoadingSwalToast("actualizando con logs detallados...");
+                    google.script.run
+                        .withSuccessHandler((updateResponse) => {
+                            const result = JSON.parse(updateResponse);
+                            $("#debugOutput").text(JSON.stringify(result, null, 2));
+                            Swal.fire({
+                                icon: "success",
+                                title: "Success!",
+                                text: "Check the output for detailed logs",
+                                timer: 2000
+                            });
+                        })
+                        .withFailureHandler((err) => {
+                            $("#debugOutput").text(`Error: ${err}`);
+                            Swal.fire("Error", "Failed to update with logs", "error");
+                        })
+                        .updateCategoryWithLogs(
+                            { name: firstCat.name, created_at: firstCat.created_at },
+                            firstCat.id
+                        );
+                } else {
+                    Swal.fire("Error", "No categories found to test with", "error");
+                }
+            })
+            .withFailureHandler((err) => {
+                Swal.fire("Error", `Failed to load categories: ${err}`, "error");
+            })
+            .readCategoryTable();
+    });
+
+    $("#testGetRelatedWithLogs").on("click", function () {
+        const categoryId = prompt("Enter Category ID:");
+        if (categoryId) {
+            defaultLoadingSwalToast("obteniendo relaciones con logs...");
+            google.script.run
+                .withSuccessHandler((response) => {
+                    const result = JSON.parse(response);
+                    $("#debugOutput").text(JSON.stringify(result, null, 2));
+                    Swal.fire({
+                        icon: "success",
+                        title: "Success!",
+                        text: `Found ${result.data?.length || 0} related products`,
+                        timer: 2000
+                    });
+                })
+                .withFailureHandler((err) => {
+                    $("#debugOutput").text(`Error: ${err}`);
+                    Swal.fire("Error", "Failed to get related records with logs", "error");
+                })
+                .getCategoryRelatedRecordsWithLogs(Number(categoryId));
+        }
+    });
+
+    $("#testGetCreationResult").on("click", function () {
+        google.script.run
+            .withSuccessHandler((response) => {
+                const result = JSON.parse(response);
+                $("#debugOutput").text(JSON.stringify(result, null, 2));
+                Swal.fire({
+                    icon: "info",
+                    title: "Creation Result",
+                    text: "Check the output for table creation details",
+                    timer: 2000
+                });
+            })
+            .withFailureHandler((err) => {
+                $("#debugOutput").text(`Error: ${err}`);
+                Swal.fire("Error", "Failed to get creation result", "error");
+            })
+            .getLastCreationResult();
+    });
+
+    // ========== Data Integrity Tests ==========
+
+    $("#testCheckIntegrity").on("click", function () {
+        defaultLoadingSwalToast("verificando integridad de la tabla...");
+        google.script.run
+            .withSuccessHandler((response) => {
+                const data = JSON.parse(response);
+                $("#integrityOutput").text(JSON.stringify(data, null, 2));
+                Swal.fire({
+                    icon: data.status === 200 ? "success" : "error",
+                    title: "Integrity Check Complete",
+                    text: data.message || data.error
+                });
+            })
+            .withFailureHandler((err) => {
+                $("#integrityOutput").text(`Error: ${err}`);
+                Swal.fire("Error", "Failed to check integrity", "error");
+            })
+            .checkOrderDetailIntegrity();
+    });
+
+    $("#testDeleteJunctionRecords").on("click", function () {
+        const orderId = prompt("Enter Order ID to delete junction records:");
+        if (orderId) {
+            defaultLoadingSwalToast("eliminando registros de junction...");
+            google.script.run
+                .withSuccessHandler((response) => {
+                    const data = JSON.parse(response);
+                    $("#integrityOutput").text(JSON.stringify(data, null, 2));
+                    Swal.fire({
+                        icon: data.status === 200 ? "success" : "error",
+                        title: "Junction Records Deleted",
+                        text: data.message || data.error
+                    });
+                })
+                .withFailureHandler((err) => {
+                    $("#integrityOutput").text(`Error: ${err}`);
+                    Swal.fire("Error", "Failed to delete junction records", "error");
+                })
+                .deleteOrderDetailsByOrderId(Number(orderId));
+        }
+    });
+
+    // ========== Query Alternatives Tests ==========
+
+    $("#testTextFinder").on("click", function () {
+        const fk = $("#queryForeignKey").val();
+        if (!fk) {
+            Swal.fire("Error", "Please enter a Category ID", "error");
+            return;
+        }
+
+        const startTime = performance.now();
+        defaultLoadingSwalToast("consultando con TextFinder...");
+        google.script.run
+            .withSuccessHandler((response) => {
+                const endTime = performance.now();
+                const timeTaken = (endTime - startTime).toFixed(2);
+                advancedFeaturesModule.queryTimes.textFinder = timeTaken;
+
+                const data = JSON.parse(response);
+                const output = `Time: ${timeTaken}ms\nRecords: ${data.data?.length || 0}\n\n${JSON.stringify(data, null, 2)}`;
+                $("#queryOutput").text(output);
+                Swal.fire({
+                    icon: "success",
+                    title: "TextFinder Query Complete",
+                    text: `Found ${data.data?.length || 0} records in ${timeTaken}ms`
+                });
+            })
+            .withFailureHandler((err) => {
+                $("#queryOutput").text(`Error: ${err}`);
+                Swal.fire("Error", "TextFinder query failed", "error");
+            })
+            .getCategoryRelatedRecordsTextFinder(Number(fk));
+    });
+
+    $("#testFilterMethod").on("click", function () {
+        const fk = $("#queryForeignKey").val();
+        if (!fk) {
+            Swal.fire("Error", "Please enter a Category ID", "error");
+            return;
+        }
+
+        const startTime = performance.now();
+        defaultLoadingSwalToast("consultando con Filter...");
+        google.script.run
+            .withSuccessHandler((response) => {
+                const endTime = performance.now();
+                const timeTaken = (endTime - startTime).toFixed(2);
+                advancedFeaturesModule.queryTimes.filter = timeTaken;
+
+                const data = JSON.parse(response);
+                const output = `Time: ${timeTaken}ms\nRecords: ${data.data?.length || 0}\n\n${JSON.stringify(data, null, 2)}`;
+                $("#queryOutput").text(output);
+                Swal.fire({
+                    icon: "success",
+                    title: "Filter Query Complete",
+                    text: `Found ${data.data?.length || 0} records in ${timeTaken}ms`
+                });
+            })
+            .withFailureHandler((err) => {
+                $("#queryOutput").text(`Error: ${err}`);
+                Swal.fire("Error", "Filter query failed", "error");
+            })
+            .getCategoryRelatedRecordsFilter(Number(fk));
+    });
+
+    $("#testNormalMethod").on("click", function () {
+        const fk = $("#queryForeignKey").val();
+        if (!fk) {
+            Swal.fire("Error", "Please enter a Category ID", "error");
+            return;
+        }
+
+        const startTime = performance.now();
+        defaultLoadingSwalToast("consultando con método normal...");
+        google.script.run
+            .withSuccessHandler((response) => {
+                const endTime = performance.now();
+                const timeTaken = (endTime - startTime).toFixed(2);
+                advancedFeaturesModule.queryTimes.normal = timeTaken;
+
+                const data = JSON.parse(response);
+
+                // Build comparison output
+                let comparisonText = `=== NORMAL METHOD (Fastest) ===\nTime: ${timeTaken}ms\nRecords: ${data.data?.length || 0}\n\n`;
+
+                if (advancedFeaturesModule.queryTimes.textFinder) {
+                    const diff = (advancedFeaturesModule.queryTimes.textFinder - timeTaken).toFixed(2);
+                    comparisonText += `TextFinder was ${diff}ms slower\n`;
+                }
+                if (advancedFeaturesModule.queryTimes.filter) {
+                    const diff = (advancedFeaturesModule.queryTimes.filter - timeTaken).toFixed(2);
+                    comparisonText += `Filter was ${diff}ms slower\n`;
+                }
+
+                comparisonText += `\n${JSON.stringify(data, null, 2)}`;
+                $("#queryOutput").text(comparisonText);
+
+                Swal.fire({
+                    icon: "success",
+                    title: "Normal Query Complete",
+                    text: `Found ${data.data?.length || 0} records in ${timeTaken}ms`
+                });
+            })
+            .withFailureHandler((err) => {
+                $("#queryOutput").text(`Error: ${err}`);
+                Swal.fire("Error", "Normal query failed", "error");
+            })
+            .getCategoryRelatedRecords(Number(fk));
+    });
+
+    // ========== Visual Styling Test ==========
+
+    $("#applyColorScheme").on("click", function () {
+        const tableName = $("#styleTableName").val();
+        const colorScheme = $("#styleColorScheme").val();
+
+        defaultLoadingSwalToast("aplicando esquema de colores...");
+        google.script.run
+            .withSuccessHandler((response) => {
+                const data = JSON.parse(response);
+                $("#styleOutput").text(JSON.stringify(data, null, 2));
+                Swal.fire({
+                    icon: data.status === 200 ? "success" : "error",
+                    title: data.status === 200 ? "Color Scheme Applied!" : "Error",
+                    text: data.message || data.error || `Applied ${colorScheme} to ${tableName}`
+                });
+            })
+            .withFailureHandler((err) => {
+                $("#styleOutput").text(`Error: ${err}`);
+                Swal.fire("Error", "Failed to apply color scheme", "error");
+            })
+            .applyColorToTable(tableName, colorScheme);
+    });
+
     });
 </script>

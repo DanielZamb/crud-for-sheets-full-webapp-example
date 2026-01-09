@@ -1,421 +1,642 @@
 <style>
   :root {
-    /* Primary UI font - Using Inter as an example */
-    --bs-body-font-family: "Inter", system-ui, -apple-system, sans-serif;
+    /* shadcn/ui color system - Dark theme (Dracula inspired) */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 258 90% 66%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 258 90% 66%;
+    --radius: 0.5rem;
 
-    /* For monospace/code elements */
+    /* Fonts */
+    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, "Courier New", monospace;
-
-    /* Font feature settings for better rendering */
-    font-feature-settings: "cv02", "cv03", "cv04", "calt"0;
-    text-rendering: optimizeLegibility;
-    /* Basic page colors */
-    --bs-body-bg: #282A36;
-    /* Background */
-    --bs-body-color: #F8F8F2;
-    /* Foreground text */
-    --bs-link-color: #8BE9FD;
-    /* Links: using Cyan */
-
-    /* Semantic colors */
-    --bs-primary: #BD93F9;
-    /* Purple as the "primary" color */
-    --bs-secondary: #6272A4;
-    /* Comment as secondary or accent */
-    --bs-success: #50FA7B;
-    /* Green */
-    --bs-info: #8BE9FD;
-    /* Cyan */
-    --bs-warning: #F1FA8C;
-    /* Yellow */
-    --bs-danger: #FF5555;
-    /* Red */
-    --c-purple-b: #BD93F9;
-
-    --c-success-s: rgba(80, 250, 123, 0.2);
-    /* Green with opacity */
-    --c-danger-s: rgba(255, 85, 85, 0.2);
-    /* Red with opacity */
-    --c-warning-s: rgba(241, 250, 140, 0.2);
-    /* Yellow with opacity */
-    --c-info-s: rgba(139, 233, 253, 0.2);
-    /* Cyan with opacity */
-    --c-purple-s: rgba(189, 147, 249, 0.2);
-    /* Purple with opacity */
-    --c-purple-mid: rgba(189, 147, 249, 0.5);
-    /* Purple with more opacity */
-
-    /* Optionally override light/dark */
-    --bs-light: #44475A;
-    /* Current line as "light" background */
-    --bs-dark: #191A21;
-    /* or #1E2029, a custom darker shade */
-
-    /* Other commonly used variables */
-    --bs-border-color: #44475A;
-    /* default border color if you want to unify */
-
-    /* You can also override gray scale if needed */
-    --bs-gray-100: #44475A;
-    --bs-gray-200: #505266;
-    --bs-gray-300: #6272A4;
-    --bs-gray-400: #6C6F93;
-    --bs-gray-500: #787BA2;
-    --bs-gray-600: #8A8DA6;
-    --bs-gray-700: #9297B0;
-    --bs-gray-800: #A1A7C1;
-    --bs-gray-900: #BCC2E0;
   }
 
-  /* Select 2 Dark Theme */
-  /* html[data-bs-theme="dark"] .select2-container--default .select2-selection--single {
-      background-color: #212529 !important;
+  * {
+    border-color: hsl(var(--border));
   }
 
-      html[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
-          color: #fff !important;
-      }
-
-  html[data-bs-theme="dark"] .select2-dropdown {
-      background-color: #212529 !important;
-  }
-
-  html[data-bs-theme="dark"] .select2-container--default .select2-results__option[aria-selected=true] {
-      background-color: black !important;
-  } */
-
-  .select2-search {
-    background-color: #343A40 !important;
-  }
-
-  /* Change the appearence of the search input field */
-  .select2-search input {
-    color: #ffffff !important;
-    background-color: #343A40 !important;
-  }
-
-  /* Change the appearence of the search results container */
-  .select2-results {
-    background-color: #343A40 !important;
-  }
-
-  /* Change the appearence of the dropdown select container */
-  .select2-container--bootstrap-5 .select2-selection {
-    border-color: #6c757d !important;
-    color: #ffffff !important;
-    background-color: #343A40 !important;
-  }
-
-  /* Change the caret down arrow symbol to white */
-  /* .select2-container--bootstrap-5 .select2-selection--single {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
-  } */
-
-  /* Change the color of the default selected item i.e. the first option */
-  .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-    color: #ffffff !important;
-  }
-
-  .nav-link:hover {
-    cursor: pointer;
-    background-color: var(--bs-light);
-    /* any highlight color */
-  }
-
-  .text-primary {
-    color: var(--bs-primary) !important;
-  }
-
-  .text-responsive {
-    font-size: 1.25rem;
-    /* Default on medium+ screens */
-  }
-
-  /* On small screens (<576px) */
-  @media (max-width: 575.98px) {
-    .text-responsive {
-      font-size: 0.75rem;
-    }
-  }
-
-  /* On large screens (>=992px) you could go bigger, etc. */
-  @media (min-width: 992px) {
-    .text-responsive {
-      font-size: 1rem;
-    }
-  }
-
-
-  /* Base body text */
   body {
-    font-family: var(--bs-body-font-family);
-    font-weight: 400;
-    line-height: 1.5;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Headers */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    /* Slightly tighter spacing for headlines */
+  /* shadcn-like Card Component */
+  .card {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
 
-  .carousel-c {
+  .card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid hsl(var(--border));
+    font-weight: 600;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card-body {
+    padding: 1.5rem;
+  }
+
+  .card-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    margin: 0;
+  }
+
+  /* shadcn-like Button Components */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+    height: 2.25rem;
+  }
+
+  .btn:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .btn:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  /* Button Variants */
+  .btn-primary {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .btn-primary:hover {
+    background-color: hsl(var(--primary) / 0.9);
+  }
+
+  .btn-secondary {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .btn-secondary:hover {
+    background-color: hsl(var(--secondary) / 0.8);
+  }
+
+  .btn-success {
+    background-color: hsl(142 76% 36%);
+    color: hsl(210 40% 98%);
+  }
+
+  .btn-success:hover {
+    background-color: hsl(142 76% 36% / 0.9);
+  }
+
+  .btn-danger {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+
+  .btn-danger:hover {
+    background-color: hsl(var(--destructive) / 0.9);
+  }
+
+  .btn-warning {
+    background-color: hsl(38 92% 50%);
+    color: hsl(222.2 84% 4.9%);
+  }
+
+  .btn-warning:hover {
+    background-color: hsl(38 92% 50% / 0.9);
+  }
+
+  .btn-info {
+    background-color: hsl(199 89% 48%);
+    color: hsl(210 40% 98%);
+  }
+
+  .btn-info:hover {
+    background-color: hsl(199 89% 48% / 0.9);
+  }
+
+  /* Outline Button Variants */
+  .btn-outline {
+    background-color: transparent;
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
+  }
+
+  .btn-outline-primary {
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary));
+  }
+
+  .btn-outline-primary:hover {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .btn-outline-secondary {
+    border-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .btn-outline-secondary:hover {
+    background-color: hsl(var(--secondary));
+  }
+
+  .btn-outline-success {
+    border-color: hsl(142 76% 36%);
+    color: hsl(142 76% 36%);
+  }
+
+  .btn-outline-success:hover {
+    background-color: hsl(142 76% 36%);
+    color: hsl(210 40% 98%);
+  }
+
+  .btn-outline-danger {
+    border-color: hsl(var(--destructive));
+    color: hsl(var(--destructive));
+  }
+
+  .btn-outline-danger:hover {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+
+  .btn-outline-warning {
+    border-color: hsl(38 92% 50%);
+    color: hsl(38 92% 50%);
+  }
+
+  .btn-outline-warning:hover {
+    background-color: hsl(38 92% 50%);
+    color: hsl(222.2 84% 4.9%);
+  }
+
+  /* Button Sizes */
+  .btn-sm {
+    height: 2rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .btn-lg {
+    height: 2.5rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+
+  /* Rounded Button */
+  .btn-rounded {
+    border-radius: 9999px;
+  }
+
+  /* shadcn-like Input Components */
+  .form-control,
+  .form-select {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--input));
+    border-radius: calc(var(--radius) - 2px);
+    transition: all 0.2s;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    outline: none;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+  }
+
+  .form-control::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: hsl(var(--foreground));
+  }
+
+  /* shadcn-like Table Styles */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .table thead {
+    background-color: hsl(var(--muted));
+  }
+
+  .table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .table tbody tr:hover {
+    background-color: hsl(var(--muted) / 0.5);
+  }
+
+  .table-striped tbody tr:nth-child(odd) {
+    background-color: hsl(var(--muted) / 0.3);
+  }
+
+  .table-bordered {
+    border: 1px solid hsl(var(--border));
+  }
+
+  .table-bordered th,
+  .table-bordered td {
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Navbar Styles */
+  .navbar {
+    background-color: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border));
+    padding: 1rem;
+  }
+
+  .navbar-brand {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: hsl(var(--foreground));
+    text-decoration: none;
+  }
+
+  .navbar-toggler {
+    background-color: transparent;
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.5rem;
+    color: hsl(var(--foreground));
+    cursor: pointer;
+  }
+
+  .navbar-toggler-icon {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100%;
+  }
+
+  /* Offcanvas Styles (Bootstrap JS compatible) */
+  .offcanvas {
+    position: fixed;
+    bottom: 0;
+    z-index: 1045;
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    visibility: hidden;
+    background-color: hsl(var(--card));
+    background-clip: padding-box;
+    outline: 0;
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .offcanvas-start {
+    top: 0;
+    left: 0;
+    width: 400px;
+    border-right: 1px solid hsl(var(--border));
+    transform: translateX(-100%);
+  }
+
+  .offcanvas-end {
+    top: 0;
+    right: 0;
+    width: 400px;
+    border-left: 1px solid hsl(var(--border));
+    transform: translateX(100%);
+  }
+
+  .offcanvas.show {
+    visibility: visible;
+    transform: none;
+  }
+
+  .offcanvas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .offcanvas-title {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: hsl(var(--foreground));
+  }
+
+  .btn-close {
+    background: transparent;
+    border: 0;
+    padding: 0.5rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  .btn-close:hover {
+    opacity: 1;
+  }
+
+  .btn-close::before {
+    content: "×";
+    font-size: 1.5rem;
+    color: hsl(var(--foreground));
+  }
+
+  .btn-close-white::before {
+    color: hsl(var(--foreground));
+  }
+
+  .offcanvas-body {
+    flex-grow: 1;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  /* Nav Styles */
+  .nav {
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .nav-item {
+    margin-bottom: 0.5rem;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: hsl(var(--muted-foreground));
+    text-decoration: none;
+    border-radius: calc(var(--radius) - 2px);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .nav-link:hover {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--foreground));
+  }
+
+  .nav-link.active {
+    background-color: hsl(var(--primary) / 0.1);
+    color: hsl(var(--primary));
+  }
+
+  /* Carousel Styles (Bootstrap JS compatible) */
+  .carousel {
     position: relative;
   }
 
-  .mt-6 {
-    margin-top: 5rem;
+  .carousel-inner {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
   }
 
-  .carousel-c .carousel-control-prev,
-  .carousel-c .carousel-control-next {
+  .carousel-item {
+    position: relative;
+    display: none;
+    float: left;
+    width: 100%;
+    margin-right: -100%;
+    backface-visibility: hidden;
+    transition: transform 0.6s ease-in-out;
+  }
+
+  .carousel-item.active {
+    display: block;
+  }
+
+  .carousel-control-prev,
+  .carousel-control-next {
     position: absolute;
     top: 0;
     bottom: auto;
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    /* opacity: 1; */
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
   }
 
-  /* Preserve monospace font for code elements */
-  code,
+  .carousel-control-prev {
+    left: 0;
+  }
+
+  .carousel-control-next {
+    right: 0;
+  }
+
+  /* Utility Classes */
+  .text-primary {
+    color: hsl(var(--primary)) !important;
+  }
+
+  .text-secondary {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  .text-success {
+    color: hsl(142 76% 36%) !important;
+  }
+
+  .text-danger {
+    color: hsl(var(--destructive)) !important;
+  }
+
+  .text-warning {
+    color: hsl(38 92% 50%) !important;
+  }
+
+  .text-info {
+    color: hsl(199 89% 48%) !important;
+  }
+
+  /* Select2 Dark Theme */
+  .select2-container--default .select2-selection--single {
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--input));
+    border-radius: calc(var(--radius) - 2px);
+    height: 2.25rem;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: hsl(var(--foreground));
+    line-height: 2.25rem;
+    padding-left: 0.75rem;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 2.25rem;
+    right: 0.5rem;
+  }
+
+  .select2-dropdown {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  .select2-results__option {
+    color: hsl(var(--foreground));
+    padding: 0.5rem 0.75rem;
+  }
+
+  .select2-results__option--highlighted {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .select2-search input {
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--input));
+    color: hsl(var(--foreground));
+  }
+
+  /* DataTables Dark Theme */
+  .dataTables_wrapper {
+    color: hsl(var(--foreground));
+  }
+
+  .dataTables_wrapper .dataTables_length select {
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--input));
+    color: hsl(var(--foreground));
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.5rem;
+  }
+
+  .dataTables_wrapper .dataTables_filter input {
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--input));
+    color: hsl(var(--foreground));
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.5rem;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: hsl(var(--foreground)) !important;
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--card));
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.5rem 0.75rem;
+    margin: 0 0.25rem;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground)) !important;
+    border-color: hsl(var(--primary));
+  }
+
+  /* Code/Pre Styles */
   pre,
-  .assertion-detail {
+  code {
     font-family: var(--font-mono);
-    font-feature-settings: "liga"1, "calt"1;
+    font-size: 0.875rem;
   }
 
-  /* Test names and module names */
-  .test-header h5 {
-    font-weight: 500;
-    /* Medium weight for better hierarchy */
-    letter-spacing: -0.01em;
+  pre {
+    background-color: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+    padding: 1rem;
+    overflow-x: auto;
   }
 
-  /* Status badges and metadata */
-  .badge,
-  .runtime {
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    /* Slightly looser for better readability */
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .text-responsive {
+      font-size: 0.75rem;
+    }
   }
 
-  /* 
-   Base styling for our custom buttons:
-   - We'll rely on the --bs-* variables from your :root to match the Dracula theme.
-   - We create a base "btn-custom" that .btn-regular and .btn-rounded can share.
-*/
-
-  .btn-custom {
-    display: inline-block;
-    font-family: var(--bs-body-font-family, sans-serif);
-    font-weight: 500;
-    line-height: 1.5;
-    text-align: center;
-    text-decoration: none;
-    cursor: pointer;
-    user-select: none;
-    border: 1px solid transparent;
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-
-    /* Default background and color (e.g. primary) */
-    background-color: var(--bs-primary);
-    color: #fff;
-
-    /* Smooth hover transitions */
-    transition: background-color 0.15s ease, border-color 0.15s ease color 0.15s ease;
+  @media (min-width: 641px) {
+    .text-responsive {
+      font-size: 1rem;
+    }
   }
 
-  .btn-custom-outline {
-    display: inline-block;
-    font-family: var(--bs-body-font-family, sans-serif);
-    font-weight: 500;
-    line-height: 1.5;
-    text-align: center;
-    text-decoration: none;
-    cursor: pointer;
-    user-select: none;
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-
-    border: 1px solid transparent;
-    /* Transparent background by default */
-    background-color: transparent;
-
-    /* Smooth hover transitions */
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  /* Custom button group styles */
+  .btn-group {
+    display: inline-flex;
+    gap: 0.5rem;
   }
 
-  /*-----------------------------------
-  Primary Outline
-------------------------------------*/
-  .btn-primary-outline {
-    color: var(--bs-primary);
-    border-color: var(--bs-primary);
-  }
-
-  .btn-primary-outline:hover {
-    background-color: var(--bs-primary);
-    color: #fff;
-    /* ensure good contrast on hover */
-  }
-
-  /*-----------------------------------
-  Secondary Outline
-------------------------------------*/
-  .btn-secondary-outline {
-    color: var(--bs-secondary);
-    border-color: var(--bs-secondary);
-  }
-
-  .btn-secondary-outline:hover {
-    background-color: var(--bs-secondary);
-    color: #fff;
-  }
-
-  /*-----------------------------------
-  Success (Green) Outline
-------------------------------------*/
-  .btn-success-outline {
-    color: var(--bs-success);
-    border-color: var(--bs-success);
-  }
-
-  .btn-success-outline:hover {
-    background-color: var(--c-success-s);
-    color: var(--bs-success);
-    /* or #000 for contrast */
-  }
-
-  /*-----------------------------------
-  Danger (Red) Outline
-------------------------------------*/
-  .btn-danger-outline {
-    color: var(--bs-danger);
-    border-color: var(--bs-danger);
-  }
-
-  .btn-danger-outline:hover {
-    background-color: var(--c-danger-s);
-    color: var(--c-danger-b);
-  }
-
-  /*-----------------------------------
-  Info (Cyan) Outline
-------------------------------------*/
-  .btn-info-outline {
-    color: var(--bs-info);
-    border-color: var(--bs-info);
-  }
-
-  .btn-info-outline:hover {
-    background-color: var(--c-info-s);
-    color: var(--c-info-b);
-  }
-
-  /*-----------------------------------
-  Warning (Yellow) Outline
-------------------------------------*/
-  .btn-warning-outline {
-    color: var(--bs-warning);
-    border-color: var(--bs-warning);
-  }
-
-  .btn-warning-outline:hover {
-    background-color: var(--c-warning-s);
-    color: var(--c-warning-b);
-  }
-
-
-
-  /* Square corners (or slight rounding, up to you) */
-  .btn-regular {
-    border-radius: 0.25rem;
-    /* typical Bootstrap radius */
-  }
-
-  /* Fully rounded/pill style */
-  .btn-rounded {
-    border-radius: 999px;
-    /* pill shape */
-  }
-
-
-  /* If you want separate color variants, 
-   we can rely on your existing --bs-* variables: */
-
-  /* Purple */
-  .btn-primary {
-    background-color: var(--bs-primary);
-    color: #fff;
-  }
-
-  .btn-primary:hover {
-    background-color: #966BE4;
-  }
-
-  /* Secondary (Dracula "comment" color) */
-  .btn-secondary {
-    background-color: var(--bs-secondary);
-    color: #fff;
-  }
-
-  .btn-secondary:hover {
-    background-color: #505266;
-    /* slightly darker than #6272A4 */
-  }
-
-  /* Success (Green) */
-  .btn-success {
-    background-color: var(--bs-success);
-    color: #282A36;
-    /* or #000 if you prefer */
-  }
-
-  .btn-success:hover {
-    background-color: #3FC065;
-    /* custom darker/lighter green */
-  }
-
-  /* Danger (Red) */
-  .btn-danger {
-    background-color: var(--bs-danger);
-    color: #fff;
-  }
-
-  .btn-danger:hover {
-    background-color: #E03737;
-    /* slightly darker than #FF5555 */
-  }
-
-  /* Info (Cyan) */
-  .btn-info {
-    background-color: var(--bs-info);
-    color: #282A36;
-  }
-
-  .btn-info:hover {
-    background-color: #60d7eb;
-    /* adjust as needed */
-  }
-
-  /* Warning (Yellow) */
-  .btn-warning {
-    background-color: var(--bs-warning);
-    color: #282A36;
-  }
-
-  .btn-warning:hover {
-    background-color: #dcd66f;
+  /* Offcanvas size variants */
+  .offcanvas-size-xl {
+    width: 90vw;
+    max-width: 90vw;
   }
 </style>

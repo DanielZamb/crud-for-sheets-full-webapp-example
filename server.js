@@ -563,3 +563,185 @@ function readOrderDetailFromProduct(sourceId) {
 
   return JSON.stringify(response);
 }
+
+// ============================================================
+// ADVANCED DEBUGGING & LOGGING
+// ============================================================
+
+/**
+ * Update category with detailed logging for debugging
+ * Uses updateWithLogs() which provides enhanced debugging information
+ * including validation details, type conversions, and any errors.
+ */
+function updateCategoryWithLogs(updatedCategory, id) {
+  updatedCategory.created_at = new Date(updatedCategory.created_at);
+  const response = db.updateWithLogs(
+    categoryTableConfig.tableName,
+    id,
+    updatedCategory,
+    Object.keys(categoryTableConfig.fields)
+  );
+  console.log("Update with logs:", response);
+  return JSON.stringify(response);
+}
+
+/**
+ * Get related records with detailed logging
+ * This demonstrates getRelatedRecordsWithLogs() for debugging relationship queries
+ */
+function getCategoryRelatedRecordsWithLogs(foreignKey) {
+  const response = db.getRelatedRecordsWithLogs(
+    foreignKey,
+    productTableConfig.tableName,
+    "category_fk",
+    4,
+    {},
+    false
+  );
+  return JSON.stringify(response);
+}
+
+/**
+ * Get the result of the last table creation operation
+ * Useful for debugging table setup and configuration issues
+ */
+function getLastCreationResult() {
+  const response = db.getCreationResult();
+  return JSON.stringify(response);
+}
+
+// ============================================================
+// ALTERNATIVE QUERY METHODS
+// ============================================================
+
+/**
+ * Get related records using TextFinder (text-based matching)
+ * This is an alternative query method that uses Google Sheets' TextFinder API
+ * Generally slower than the standard method but useful for text-based searches
+ */
+function getCategoryRelatedRecordsTextFinder(foreignKey) {
+  const response = db.getRelatedRecordsWithTextFinder(
+    foreignKey,
+    productTableConfig.tableName,
+    "category_fk",
+    4,
+    {},
+    false
+  );
+  return JSON.stringify(response);
+}
+
+/**
+ * Get related records using filter() method
+ * This is an alternative implementation using JavaScript array filtering
+ * Demonstrates different query approaches with performance trade-offs
+ */
+function getCategoryRelatedRecordsFilter(foreignKey) {
+  const response = db.getRelatedRecordsWithFilter(
+    foreignKey,
+    productTableConfig.tableName,
+    "category_fk",
+    4,
+    {},
+    false
+  );
+  return JSON.stringify(response);
+}
+
+// ============================================================
+// DATA INTEGRITY
+// ============================================================
+
+/**
+ * Check junction table integrity and move invalid records to history
+ * This validates that all foreign keys in the ORDER_DETAIL table
+ * point to valid records in ORDER and PRODUCT tables.
+ * Invalid records are automatically moved to the history table.
+ */
+function checkOrderDetailIntegrity() {
+  const response = db.checkTableIntegrity(
+    orderDetailConfig.tableName,
+    orderDetailConfig.historyTableName
+  );
+  return JSON.stringify(response);
+}
+
+/**
+ * Manually delete junction records for a specific parent
+ * This demonstrates explicit junction record cleanup.
+ * Normally this happens automatically with removeWithCascade(),
+ * but this function allows manual control over the process.
+ *
+ * @param {number} orderId - The order ID whose junction records should be deleted
+ */
+function deleteOrderDetailsByOrderId(orderId) {
+  const response = db.deleteRelatedJunctionRecords(
+    orderDetailConfig.tableName,
+    orderDetailConfig.historyTableName,
+    2, // order_id is at index 2 in ORDER_DETAIL
+    orderId
+  );
+  return JSON.stringify(response);
+}
+
+// ============================================================
+// VISUAL STYLING
+// ============================================================
+
+/**
+ * Apply a color scheme to a table for visual organization
+ * This uses the library's built-in color scheme support to
+ * visually distinguish different tables in the spreadsheet.
+ *
+ * @param {string} tableName - Table to style (CATEGORY, PRODUCT, etc.)
+ * @param {string} colorScheme - One of: red, blue, green, orange, purple
+ */
+function applyColorToTable(tableName, colorScheme) {
+  try {
+    const response = db.applyColorScheme(tableName, colorScheme);
+    return JSON.stringify(response);
+  } catch (error) {
+    return JSON.stringify({ status: 500, error: error.message });
+  }
+}
+
+// ============================================================
+// ADVANCED CRUD WITH OPTIONS
+// ============================================================
+
+/**
+ * Read category table with pagination and sorting options
+ * Demonstrates the full power of getAll() with query options.
+ *
+ * @param {Object} options - Query options
+ * @param {number} options.page - Page number (1-indexed)
+ * @param {number} options.pageSize - Records per page
+ * @param {string} options.sortBy - Field name to sort by
+ * @param {string} options.sortOrder - 'asc' or 'desc'
+ */
+function readCategoryTableWithOptions(options) {
+  const response = db.getAll(categoryTableConfig.tableName, options, false);
+  return JSON.stringify(response);
+}
+
+/**
+ * Upsert category by name (create if not exists, update if exists)
+ * This demonstrates the addUpdatePolicy parameter which enables
+ * intelligent upsert behavior based on a key field.
+ *
+ * If a category with the given name exists, it will be updated.
+ * If not, a new category will be created.
+ *
+ * @param {Object} categoryData - Category data with name and created_at
+ */
+function upsertCategoryByName(categoryData) {
+  categoryData.created_at = new Date(categoryData.created_at);
+  const policy = { key: "name", value: categoryData.name };
+  const response = db.create(
+    categoryTableConfig.tableName,
+    categoryData,
+    Object.keys(categoryTableConfig.fields),
+    policy
+  );
+  return JSON.stringify(response);
+}

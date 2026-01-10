@@ -1,15 +1,203 @@
 <script>
   $(document).ready(function () {
+    /****************************************************
+     * Minimal UI utilities (no Bootstrap JS)
+     * - Offcanvas: toggles `.show` on `.offcanvas`
+     * - Carousel: toggles `.active` on `.carousel-item`
+     ****************************************************/
+    function openOffcanvas(selectorOrEl) {
+      const el =
+        typeof selectorOrEl === "string"
+          ? document.querySelector(selectorOrEl)
+          : selectorOrEl;
+      if (!el) return;
+      el.classList.add("show");
+      el.setAttribute("aria-modal", "true");
+      el.removeAttribute("aria-hidden");
+
+      // backdrop
+      if (!document.querySelector(".offcanvas-backdrop")) {
+        const backdrop = document.createElement("div");
+        backdrop.className = "offcanvas-backdrop";
+        backdrop.addEventListener("click", () => closeOffcanvas(el));
+        document.body.appendChild(backdrop);
+        requestAnimationFrame(() => backdrop.classList.add("show"));
+      }
+    }
+
+    function closeOffcanvas(selectorOrEl) {
+      const el =
+        typeof selectorOrEl === "string"
+          ? document.querySelector(selectorOrEl)
+          : selectorOrEl;
+      if (!el) return;
+      el.classList.remove("show");
+      el.setAttribute("aria-hidden", "true");
+      el.removeAttribute("aria-modal");
+
+      const backdrop = document.querySelector(".offcanvas-backdrop");
+      if (backdrop) {
+        backdrop.classList.remove("show");
+        setTimeout(() => backdrop.remove(), 200);
+      }
+    }
+
+    function getCarouselEl(target) {
+      if (!target) return null;
+      if (typeof target === "string") return document.querySelector(target);
+      return target;
+    }
+
+    function carouselSetSlide(carouselTarget, slideIndex) {
+      const carouselEl = getCarouselEl(carouselTarget);
+      if (!carouselEl) return;
+      const items = Array.from(carouselEl.querySelectorAll(".carousel-item"));
+      if (!items.length) return;
+      const idx = Math.max(0, Math.min(items.length - 1, slideIndex));
+      items.forEach((it, i) => it.classList.toggle("active", i === idx));
+    }
+
+    function carouselMove(carouselTarget, direction) {
+      const carouselEl = getCarouselEl(carouselTarget);
+      if (!carouselEl) return;
+      const items = Array.from(carouselEl.querySelectorAll(".carousel-item"));
+      if (!items.length) return;
+      const currentIdx = Math.max(
+        0,
+        items.findIndex((it) => it.classList.contains("active"))
+      );
+      const nextIdx =
+        direction === "next"
+          ? Math.min(items.length - 1, currentIdx + 1)
+          : Math.max(0, currentIdx - 1);
+      carouselSetSlide(carouselEl, nextIdx);
+    }
+
+    // Bridge existing markup attributes (data-bs-*) to our plain JS
+    document.addEventListener("click", (e) => {
+      const openBtn = e.target.closest('[data-bs-toggle="offcanvas"]');
+      if (openBtn) {
+        const targetSel = openBtn.getAttribute("data-bs-target");
+        if (targetSel) openOffcanvas(targetSel);
+        return;
+      }
+
+      const dismissBtn = e.target.closest('[data-bs-dismiss="offcanvas"]');
+      if (dismissBtn) {
+        const offcanvasEl = dismissBtn.closest(".offcanvas");
+        closeOffcanvas(offcanvasEl);
+        return;
+      }
+
+      const slideBtn = e.target.closest("[data-bs-target][data-bs-slide]");
+      if (slideBtn) {
+        const targetSel = slideBtn.getAttribute("data-bs-target");
+        const dir = slideBtn.getAttribute("data-bs-slide");
+        carouselMove(targetSel, dir);
+        return;
+      }
+    });
+
     const $modules = $(".module");
+
+    // Tom Select instances storage
+    const tomSelectInstances = {};
+
+    function afterModuleShown($module) {
+      // DataTables will mis-measure widths when initialized in hidden containers.
+      // When we show a module, force a reflow for any tables inside it.
+      try {
+        const $tables = $module.find("table.display");
+        $tables.each(function () {
+          const api = $(this).DataTable?.();
+          if (api && api.columns) {
+            api.columns.adjust();
+            // responsive recalculation (if enabled)
+            api.responsive?.recalc?.();
+          }
+        });
+      } catch (e) {
+        // no-op
+      }
+    }
+
+    // Inline loading state helper for Info buttons
+    function setIconButtonLoading(btnEl, isLoading) {
+      const $btn = $(btnEl);
+      if (isLoading) {
+        // Store original HTML
+        $btn.data("original-html", $btn.html());
+        $btn.prop("disabled", true);
+        $btn.html('<i class="bi bi-arrow-repeat animate-spin"></i>');
+        $btn.css("opacity", "0.6");
+      } else {
+        // Restore original HTML
+        const originalHtml = $btn.data("original-html");
+        if (originalHtml) {
+          $btn.html(originalHtml);
+          $btn.removeData("original-html");
+        }
+        $btn.prop("disabled", false);
+        $btn.css("opacity", "1");
+      }
+    }
+
+    // Loading state helper for regular buttons (with text and icons)
+    function setButtonLoading(buttonId, isLoading) {
+      const $btn = $(`#${buttonId}`);
+      if (!$btn.length) return;
+      
+      if (isLoading) {
+        // Store original HTML and disabled state
+        if (!$btn.data("original-html")) {
+          $btn.data("original-html", $btn.html());
+        }
+        $btn.data("original-disabled", $btn.prop("disabled"));
+        
+        // Extract text content (remove HTML tags)
+        const originalHtml = $btn.data("original-html");
+        const tempDiv = $('<div>').html(originalHtml);
+        const textContent = tempDiv.text().trim();
+        const firstWord = textContent.split(' ')[0] || 'Loading';
+        
+        // Replace content with spinner icon and first word
+        $btn.prop("disabled", true);
+        $btn.html(`<i class="bi bi-arrow-repeat animate-spin"></i> ${firstWord}...`);
+        $btn.css("opacity", "0.7");
+        $btn.css("cursor", "not-allowed");
+      } else {
+        // Restore original HTML
+        const originalHtml = $btn.data("original-html");
+        const originalDisabled = $btn.data("original-disabled");
+        
+        if (originalHtml) {
+          $btn.html(originalHtml);
+          $btn.removeData("original-html");
+        }
+        $btn.prop("disabled", originalDisabled !== undefined ? originalDisabled : false);
+        $btn.removeData("original-disabled");
+        $btn.css("opacity", "1");
+        $btn.css("cursor", "");
+      }
+    }
+
     $(".offcanvas-body").on("click", "li.nav-item", function () {
-        $(".nav-item").removeClass("active");
-        $(this).addClass("active");
+      $(".nav-item").removeClass("active");
+      $(this).addClass("active");
 
-        $modules.hide();
+      $modules.hide();
 
-        const moduleId = $(this).attr("data-module");
-        $(`#${moduleId}`).show();
-    })
+      const moduleId = $(this).attr("data-module");
+      const $target = $(`#${moduleId}`);
+      $target.show();
+      afterModuleShown($target);
+
+      // On mobile, close the sidebar after selecting a section
+      const sidebarEl = document.querySelector("#offcanvasSidebar");
+      if (sidebarEl && window.matchMedia("(max-width: 1023px)").matches) {
+        closeOffcanvas(sidebarEl);
+      }
+    });
 
     const categoryModule = {
         categoryTable: null,
@@ -80,7 +268,7 @@
     })
 
     $("#createNewCategory").click(function () {
-        $("#categoryModule").carousel(1);
+        carouselSetSlide("#categoryModule", 1);
     })
 
     $("#createCategoryForm").on("submit", function (e) {
@@ -152,7 +340,7 @@
         // Decide which date field you want to use (rowData.date or rowData.created_at)
         $("#editCategoryDate").val(currentRow.created_at.substr(0, 10));
 
-        $("#categoryModule").carousel(2);
+        carouselSetSlide("#categoryModule", 2);
     });
 
     $("#categoryTable").on("click", ".deleteCategory", function () {
@@ -176,13 +364,23 @@
         });
     })
     $("#categoryTable").on("click", ".readCategory", function () {
-      const $row = $(this).closest("tr");
+      const $btn = $(this);
+      const $row = $btn.closest("tr");
       const rowData = categoryModule.categoryTable.row($row).data();
       const categoryId = rowData.id;
       console.log("Reading products for Category ID:", categoryId);
 
+      setIconButtonLoading($btn[0], true);
+
       google.script.run
-        .withSuccessHandler(displayCategoryOffcanvasResults)
+        .withSuccessHandler(function(response) {
+          setIconButtonLoading($btn[0], false);
+          displayCategoryOffcanvasResults(response);
+        })
+        .withFailureHandler(function(error) {
+          setIconButtonLoading($btn[0], false);
+          defaultSwalErr("cargar productos relacionados", error);
+        })
         .getCategoryRelatedRecords(
           categoryId,
         );
@@ -197,10 +395,7 @@
       // Start with cards view
       buildCategoryCardsView(data);
 
-      // Show the wide offcanvas
-      const offcanvasEl = document.getElementById("offcanvasCategory");
-      const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
-      bsOffcanvas.show();
+      openOffcanvas("#offcanvasCategory");
     }
 
     // Toggle between JSON and cards for Category
@@ -337,19 +532,41 @@
                 const data = JSON.parse(response);
                 if (data.status === 200) {
                     const customers = data.data.map(c => ({
-                        id: c.id,
+                        value: c.id,
                         text: c.first_name + " " + c.last_name
                     }));
-                    const $select = $("#createOrderCustomer, #editOrderCustomer");
-                    $select.empty(); // remove placeholder option
-                    $select.select2({
-                        dropdownAutoWidth: true,
-                        width: '100%',
-                        data: customers,
-                        theme: "bootstrap-5",
-                        placeholder: "Seleccione un cliente",
-                        allowClear: true
-                    });
+                    
+                    // Initialize/create Tom Select for create order customer
+                    const createSelect = document.getElementById("createOrderCustomer");
+                    if (createSelect) {
+                        if (tomSelectInstances.createOrderCustomer) {
+                            tomSelectInstances.createOrderCustomer.clearOptions();
+                            tomSelectInstances.createOrderCustomer.addOptions(customers);
+                        } else {
+                            tomSelectInstances.createOrderCustomer = new TomSelect(createSelect, {
+                                options: customers,
+                                placeholder: "Seleccione un cliente",
+                                allowEmptyOption: true,
+                                create: false
+                            });
+                        }
+                    }
+                    
+                    // Initialize/create Tom Select for edit order customer
+                    const editSelect = document.getElementById("editOrderCustomer");
+                    if (editSelect) {
+                        if (tomSelectInstances.editOrderCustomer) {
+                            tomSelectInstances.editOrderCustomer.clearOptions();
+                            tomSelectInstances.editOrderCustomer.addOptions(customers);
+                        } else {
+                            tomSelectInstances.editOrderCustomer = new TomSelect(editSelect, {
+                                options: customers,
+                                placeholder: "Seleccione un cliente",
+                                allowEmptyOption: true,
+                                create: false
+                            });
+                        }
+                    }
                 } else {
                     console.error("Error loading customers:", data);
                 }
@@ -370,11 +587,23 @@
         initOrderTable();
         loadOrders();
 
-        $("#createOrderCustomer, #editOrderCustomer").select2({
-            theme: "bootstrap-5", // if using the bootstrap theme
-            placeholder: "Seleccione un cliente",
-            allowClear: true
-        });
+        // Initialize Tom Select for order customer selects
+        const createOrderCustomerSelect = document.getElementById("createOrderCustomer");
+        if (createOrderCustomerSelect && !tomSelectInstances.createOrderCustomer) {
+            tomSelectInstances.createOrderCustomer = new TomSelect(createOrderCustomerSelect, {
+                placeholder: "Seleccione un cliente",
+                allowEmptyOption: true,
+                create: false
+            });
+        }
+        const editOrderCustomerSelect = document.getElementById("editOrderCustomer");
+        if (editOrderCustomerSelect && !tomSelectInstances.editOrderCustomer) {
+            tomSelectInstances.editOrderCustomer = new TomSelect(editOrderCustomerSelect, {
+                placeholder: "Seleccione un cliente",
+                allowEmptyOption: true,
+                create: false
+            });
+        }
         loadCustomersForSelect();
     }
 
@@ -394,7 +623,7 @@
      ****************************************************/
     $("#createNewOrder").click(function () {
         // Move carousel to the “Create Order” form
-        $("#orderModule").carousel(1);
+        carouselSetSlide("#orderModule", 1);
     });
 
     $("#createOrderForm").on("submit", function (e) {
@@ -402,7 +631,7 @@
         defaultLoadingSwalToast("Creando nueva orden...");
 
         // Gather form values
-        const newOrderCustomer = $("#createOrderCustomer").val();
+        const newOrderCustomer = tomSelectInstances.createOrderCustomer ? tomSelectInstances.createOrderCustomer.getValue() : $("#createOrderCustomer").val();
         const newOrderDate = $("#createOrderDate").val();
 
         // Make server call
@@ -434,7 +663,7 @@
         e.preventDefault();
 
         const orderId = orderModule.currentRow.id;
-        const orderCustomer = $("#editOrderCustomer").val();
+        const orderCustomer = tomSelectInstances.editOrderCustomer ? tomSelectInstances.editOrderCustomer.getValue() : $("#editOrderCustomer").val();
         const orderDate = $("#editOrderDate").val();
 
         // Find the row being edited
@@ -478,7 +707,11 @@
         console.log("Editing order:", orderId, orderModule.currentRow);
 
         // Fill the Edit form
-        $("#editOrderCustomer").val(orderModule.currentRow.customer_fk);
+        if (tomSelectInstances.editOrderCustomer) {
+          tomSelectInstances.editOrderCustomer.setValue(orderModule.currentRow.customer_fk);
+        } else {
+          $("#editOrderCustomer").val(orderModule.currentRow.customer_fk);
+        }
         // date? depends on how you store it. Example:
         $("#editOrderDate").val(
             orderModule.currentRow.created_at
@@ -487,7 +720,7 @@
         );
 
         // Move carousel to the “Edit Order” form (3rd slide => index=2)
-        $("#orderModule").carousel(2);
+        carouselSetSlide("#orderModule", 2);
     });
 
     /****************************************************
@@ -585,15 +818,26 @@
 
     initProductManagement();
 
-    // Convert #createProductCategoryFk & #editProductCategoryFk into Select2
-    $("#createProductCategoryFk, #editProductCategoryFk").select2({
-        theme: "bootstrap-5",
-        placeholder: "Seleccione una categoría",
-        allowClear: true,
-    });
+    // Convert #createProductCategoryFk & #editProductCategoryFk into Tom Select
+    const createProductCatSelect = document.getElementById("createProductCategoryFk");
+    if (createProductCatSelect) {
+        tomSelectInstances.createProductCategoryFk = new TomSelect(createProductCatSelect, {
+            placeholder: "Seleccione una categoría",
+            allowEmptyOption: true,
+            create: false
+        });
+    }
+    const editProductCatSelect = document.getElementById("editProductCategoryFk");
+    if (editProductCatSelect) {
+        tomSelectInstances.editProductCategoryFk = new TomSelect(editProductCatSelect, {
+            placeholder: "Seleccione una categoría",
+            allowEmptyOption: true,
+            create: false
+        });
+    }
 
-    // Load categories for the select2 dropdown
-    loadCategoriesForSelect2();
+    // Load categories for the Tom Select dropdown
+    loadCategoriesForTomSelect();
 
     // Refresh products
     $("#refreshProductTable").on("click", function () {
@@ -603,7 +847,7 @@
 
     // Create new product => go to carousel second slide
     $("#createNewProduct").on("click", function () {
-        $("#productModule").carousel(1);
+        carouselSetSlide("#productModule", 1);
     });
 
     // Handle CREATE form submission
@@ -614,7 +858,7 @@
         // Gather form values
         const newName = $("#createProductName").val();
         const newPrice = $("#createProductPrice").val();
-        const newCatId = $("#createProductCategoryFk").val();  // from Select2
+        const newCatId = tomSelectInstances.createProductCategoryFk ? tomSelectInstances.createProductCategoryFk.getValue() : $("#createProductCategoryFk").val();
         const newDate = $("#createProductDate").val();
 
         google.script.run
@@ -650,7 +894,7 @@
         // Gather form values
         const prodName = $("#editProductName").val();
         const prodPrice = $("#editProductPrice").val();
-        const prodCatId = $("#editProductCategoryFk").val();
+        const prodCatId = tomSelectInstances.editProductCategoryFk ? tomSelectInstances.editProductCategoryFk.getValue() : $("#editProductCategoryFk").val();
         const prodDate = $("#editProductDate").val();
 
         // Find the row being edited
@@ -700,16 +944,16 @@
         $("#editProductId").val(productModule.currentRow.id);
         $("#editProductName").val(productModule.currentRow.name);
         $("#editProductPrice").val(productModule.currentRow.price);
-        $("#editProductCategoryFk")
-            .val(productModule.currentRow.category_fk)
-            .trigger("change");
+        if (tomSelectInstances.editProductCategoryFk) {
+            tomSelectInstances.editProductCategoryFk.setValue(productModule.currentRow.category_fk);
+        }
         $("#editProductDate").val(
             productModule.currentRow.created_at
                 ? productModule.currentRow.created_at.substr(0, 10)
                 : ""
         );
 
-        $("#productModule").carousel(2); // navigate to edit form
+        carouselSetSlide("#productModule", 2); // navigate to edit form
     });
 
     /****************************************************
@@ -738,33 +982,27 @@
     });
 
     /****************************************************
-     * Load Categories for the select2 drop-down
+     * Load Categories for the Tom Select drop-down
      ****************************************************/
-    function loadCategoriesForSelect2() {
+    function loadCategoriesForTomSelect() {
         google.script.run
             .withSuccessHandler((response) => {
                 const data = JSON.parse(response);
                 if (data.status === 200) {
-                    const categories = data.data; // array of {id, name, ...}
-                    // Clear & repopulate both create/edit selects
-                    const $createSelect = $("#createProductCategoryFk");
-                    const $editSelect = $("#editProductCategoryFk");
-                    $createSelect.empty();
-                    $editSelect.empty();
-
-                    // Append categories as <option>
-                    categories.forEach((cat) => {
-                        $createSelect.append(
-                            new Option(cat.name, cat.id, false, false)
-                        );
-                        $editSelect.append(
-                            new Option(cat.name, cat.id, false, false)
-                        );
-                    });
-
-                    // Trigger change so Select2 can refresh
-                    $createSelect.trigger("change");
-                    $editSelect.trigger("change");
+                    const categories = data.data.map(cat => ({
+                        value: cat.id,
+                        text: cat.name
+                    }));
+                    
+                    // Update Tom Select instances
+                    if (tomSelectInstances.createProductCategoryFk) {
+                        tomSelectInstances.createProductCategoryFk.clearOptions();
+                        tomSelectInstances.createProductCategoryFk.addOptions(categories);
+                    }
+                    if (tomSelectInstances.editProductCategoryFk) {
+                        tomSelectInstances.editProductCategoryFk.clearOptions();
+                        tomSelectInstances.editProductCategoryFk.addOptions(categories);
+                    }
                 } else {
                     console.error("Failed to load categories:", data);
                 }
@@ -772,7 +1010,7 @@
             .withFailureHandler((err) => {
                 console.error("Error loading categories:", err);
             })
-            .readCategoryTable(); // or whatever your function is
+            .readCategoryTable();
     }
 
 
@@ -863,7 +1101,7 @@
 
     // Create new customer => go to second slide
     $("#createNewCustomer").click(function () {
-        $("#customerModule").carousel(1);
+        carouselSetSlide("#customerModule", 1);
     });
 
     /****************************************************
@@ -980,7 +1218,8 @@
                     : ""
             );
 
-            $("#customerModule").carousel(2); // navigate to edit form
+            // navigate to edit form (plain JS carousel)
+            carouselSetSlide("#customerModule", 2);
         });
 
         /****************************************************
@@ -1008,14 +1247,24 @@
             });
         });
       $("#customerTable").on("click", ".readCustomer", function () {
-      const $row = $(this).closest("tr");
+      const $btn = $(this);
+      const $row = $btn.closest("tr");
       console.log($row)
       const rowData = customerModule.customerTable.row($row).data();
       const customerId = rowData.id;
       console.log("Reading orders for Customer ID:", customerId);
 
+      setIconButtonLoading($btn[0], true);
+
       google.script.run
-        .withSuccessHandler(displayCustomerOffcanvasResults)
+        .withSuccessHandler(function(response) {
+          setIconButtonLoading($btn[0], false);
+          displayCustomerOffcanvasResults(response);
+        })
+        .withFailureHandler(function(error) {
+          setIconButtonLoading($btn[0], false);
+          defaultSwalErr("cargar órdenes relacionadas", error);
+        })
         .getRelatedCustomerRecords(
           customerId
         );
@@ -1030,10 +1279,7 @@
       // Start with cards view
       buildCustomerCardsView(data);
 
-      // Show the normal offcanvas
-      const offcanvasEl = document.getElementById("offcanvasCustomer");
-      const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
-      bsOffcanvas.show();
+      openOffcanvas("#offcanvasCustomer");
     }
 
     // Toggle between JSON and cards for Customer
@@ -1171,21 +1417,43 @@
     // 1) Initialize table & data
       initOrderDetailManagement();
 
-      // 2) Initialize Select2 for create/edit forms
-      $("#createOrderFk, #editOrderFk").select2({
-        theme: "bootstrap-5",
-        placeholder: "Seleccione una Orden",
-        allowClear: true,
-      });
-      $("#createProductFk, #editProductFk").select2({
-        theme: "bootstrap-5",
-        placeholder: "Seleccione un Producto",
-        allowClear: true,
-      });
+      // 2) Initialize Tom Select for create/edit forms
+      const createOrderFkSelect = document.getElementById("createOrderFk");
+      if (createOrderFkSelect) {
+        tomSelectInstances.createOrderFk = new TomSelect(createOrderFkSelect, {
+          placeholder: "Seleccione una Orden",
+          allowEmptyOption: true,
+          create: false
+        });
+      }
+      const editOrderFkSelect = document.getElementById("editOrderFk");
+      if (editOrderFkSelect) {
+        tomSelectInstances.editOrderFk = new TomSelect(editOrderFkSelect, {
+          placeholder: "Seleccione una Orden",
+          allowEmptyOption: true,
+          create: false
+        });
+      }
+      const createProductFkSelect = document.getElementById("createProductFk");
+      if (createProductFkSelect) {
+        tomSelectInstances.createProductFk = new TomSelect(createProductFkSelect, {
+          placeholder: "Seleccione un Producto",
+          allowEmptyOption: true,
+          create: false
+        });
+      }
+      const editProductFkSelect = document.getElementById("editProductFk");
+      if (editProductFkSelect) {
+        tomSelectInstances.editProductFk = new TomSelect(editProductFkSelect, {
+          placeholder: "Seleccione un Producto",
+          allowEmptyOption: true,
+          create: false
+        });
+      }
 
       // 3) Load Orders & Products for these dropdowns
-      loadOrdersForSelect2();   // A function you define to fill #createOrderFk, #editOrderFk
-      loadProductsForSelect2(); // A function you define to fill #createProductFk, #editProductFk
+      loadOrdersForTomSelect();
+      loadProductsForTomSelect();
 
       // 4) Refresh table
       $("#refreshOrderDetailTable").on("click", function(){
@@ -1195,7 +1463,7 @@
 
       // 5) Create new => carousel(1)
       $("#createNewOrderDetail").on("click", function() {
-        $("#orderDetailModule").carousel(1);
+        carouselSetSlide("#orderDetailModule", 1);
       });
 
       /****************************************************
@@ -1205,8 +1473,8 @@
         e.preventDefault();
         defaultLoadingSwalToast("Creando detalle...");
 
-        const orderId = $("#createOrderFk").val();
-        const productId = $("#createProductFk").val();
+        const orderId = tomSelectInstances.createOrderFk ? tomSelectInstances.createOrderFk.getValue() : $("#createOrderFk").val();
+        const productId = tomSelectInstances.createProductFk ? tomSelectInstances.createProductFk.getValue() : $("#createProductFk").val();
         const quantity = $("#createOrderDetailQuantity").val();
         const createdAt = $("#createOrderDetailDate").val();
 
@@ -1240,8 +1508,8 @@
         e.preventDefault();
 
         const detailId = $("#editOrderDetailId").val();
-        const orderId = $("#editOrderFk").val();
-        const productId = $("#editProductFk").val();
+        const orderId = tomSelectInstances.editOrderFk ? tomSelectInstances.editOrderFk.getValue() : $("#editOrderFk").val();
+        const productId = tomSelectInstances.editProductFk ? tomSelectInstances.editProductFk.getValue() : $("#editProductFk").val();
         const quantity = $("#editOrderDetailQuantity").val();
         const createdAt = $("#editOrderDetailDate").val();
 
@@ -1290,12 +1558,12 @@
 
         // Fill the edit form
         $("#editOrderDetailId").val(orderDetailModule.currentRow.id);
-        $("#editOrderFk")
-          .val(orderDetailModule.currentRow.order_id)
-          .trigger("change");
-        $("#editProductFk")
-          .val(orderDetailModule.currentRow.product_id)
-          .trigger("change");
+        if (tomSelectInstances.editOrderFk) {
+          tomSelectInstances.editOrderFk.setValue(orderDetailModule.currentRow.order_id);
+        }
+        if (tomSelectInstances.editProductFk) {
+          tomSelectInstances.editProductFk.setValue(orderDetailModule.currentRow.product_id);
+        }
         $("#editOrderDetailQuantity").val(orderDetailModule.currentRow.quantity);
         $("#editOrderDetailDate").val(
           orderDetailModule.currentRow.created_at
@@ -1303,7 +1571,7 @@
             : ""
         );
 
-        $("#orderDetailModule").carousel(2);
+        carouselSetSlide("#orderDetailModule", 2);
       });
 
       /****************************************************
@@ -1332,53 +1600,47 @@
       });
 
     /**
-     * Functions to load Orders & Products into Select2
-     * You already have readOrderTable() and readProductTable().
+     * Functions to load Orders & Products into Tom Select
      */
-    function loadOrdersForSelect2() {
+    function loadOrdersForTomSelect() {
       google.script.run
         .withSuccessHandler((res)=>{
           const data = JSON.parse(res);
           if(data.status===200){
-            const $createOrder = $("#createOrderFk");
-            const $editOrder = $("#editOrderFk");
-            $createOrder.empty();
-            $editOrder.empty();
-            data.data.forEach(order=>{
-              // e.g. show 'ID: customer_fk' or something
-              $createOrder.append(
-                new Option(`Orden #${order.id}`, order.id, false, false)
-              );
-              $editOrder.append(
-                new Option(`Orden #${order.id}`, order.id, false, false)
-              );
-            });
-            $createOrder.trigger("change");
-            $editOrder.trigger("change");
+            const orders = data.data.map(order => ({
+              value: order.id,
+              text: `Orden #${order.id}`
+            }));
+            if (tomSelectInstances.createOrderFk) {
+              tomSelectInstances.createOrderFk.clearOptions();
+              tomSelectInstances.createOrderFk.addOptions(orders);
+            }
+            if (tomSelectInstances.editOrderFk) {
+              tomSelectInstances.editOrderFk.clearOptions();
+              tomSelectInstances.editOrderFk.addOptions(orders);
+            }
           }
         })
         .readOrderTable();
     }
 
-    function loadProductsForSelect2() {
+    function loadProductsForTomSelect() {
       google.script.run
         .withSuccessHandler((res)=>{
           const data = JSON.parse(res);
           if(data.status===200){
-            const $createProd = $("#createProductFk");
-            const $editProd = $("#editProductFk");
-            $createProd.empty();
-            $editProd.empty();
-            data.data.forEach(prod=>{
-              $createProd.append(
-                new Option(prod.name, prod.id, false, false)
-              );
-              $editProd.append(
-                new Option(prod.name, prod.id, false, false)
-              );
-            });
-            $createProd.trigger("change");
-            $editProd.trigger("change");
+            const products = data.data.map(prod => ({
+              value: prod.id,
+              text: prod.name
+            }));
+            if (tomSelectInstances.createProductFk) {
+              tomSelectInstances.createProductFk.clearOptions();
+              tomSelectInstances.createProductFk.addOptions(products);
+            }
+            if (tomSelectInstances.editProductFk) {
+              tomSelectInstances.editProductFk.clearOptions();
+              tomSelectInstances.editProductFk.addOptions(products);
+            }
           }
         })
         .readProductTable();
@@ -1386,11 +1648,14 @@
 
      // The read button in the table
   $("#orderDetailTable").on("click", ".readOrderDetail", function () {
-    const $row = $(this).closest("tr");
+    const $btn = $(this);
+    const $row = $btn.closest("tr");
     const rowData = orderDetailModule.orderDetailTable.row($row).data();
     const orderId = rowData.order_id;
     const productId = rowData.product_id;
     console.log("Reading detail for ID:", orderId, productId);
+
+    setIconButtonLoading($btn[0], true);
 
     Swal.fire({
       title: "Búsqueda",
@@ -1402,12 +1667,29 @@
     }).then((result) => {
       if (result.isConfirmed) {
         google.script.run
-          .withSuccessHandler(displayOffcanvasResults)
+          .withSuccessHandler(function(response) {
+            setIconButtonLoading($btn[0], false);
+            displayOffcanvasResults(response);
+          })
+          .withFailureHandler(function(error) {
+            setIconButtonLoading($btn[0], false);
+            defaultSwalErr("cargar detalles de orden", error);
+          })
           .readOrderDetailFromOrder(orderId);
       } else if (result.isDenied) {
         google.script.run
-          .withSuccessHandler(displayOffcanvasResults)
+          .withSuccessHandler(function(response) {
+            setIconButtonLoading($btn[0], false);
+            displayOffcanvasResults(response);
+          })
+          .withFailureHandler(function(error) {
+            setIconButtonLoading($btn[0], false);
+            defaultSwalErr("cargar detalles de producto", error);
+          })
           .readOrderDetailFromProduct(productId);
+      } else {
+        // User dismissed the dialog
+        setIconButtonLoading($btn[0], false);
       }
     });
   });
@@ -1421,10 +1703,7 @@
     // Build initial "cards" view by default
     buildCardsView(data);
 
-    // Show the offcanvas
-    const offcanvasEl = document.getElementById("offcanvasSearch");
-    const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
-    bsOffcanvas.show();
+    openOffcanvas("#offcanvasSearch");
   }
 
   // Toggle button
@@ -1542,6 +1821,9 @@
     // ========== Debugging & Logging Tests ==========
 
     $("#testUpdateWithLogs").on("click", function () {
+        const $btn = $(this);
+        setButtonLoading("testUpdateWithLogs", true);
+        
         // Get first category and update it with logs
         google.script.run
             .withSuccessHandler((response) => {
@@ -1552,6 +1834,7 @@
                     defaultLoadingSwalToast("actualizando con logs detallados...");
                     google.script.run
                         .withSuccessHandler((updateResponse) => {
+                            setButtonLoading("testUpdateWithLogs", false);
                             const result = JSON.parse(updateResponse);
                             $("#debugOutput").text(JSON.stringify(result, null, 2));
                             Swal.fire({
@@ -1562,6 +1845,7 @@
                             });
                         })
                         .withFailureHandler((err) => {
+                            setButtonLoading("testUpdateWithLogs", false);
                             $("#debugOutput").text(`Error: ${err}`);
                             Swal.fire("Error", "Failed to update with logs", "error");
                         })
@@ -1570,41 +1854,57 @@
                             firstCat.id
                         );
                 } else {
+                    setButtonLoading("testUpdateWithLogs", false);
                     Swal.fire("Error", "No categories found to test with", "error");
                 }
             })
             .withFailureHandler((err) => {
+                setButtonLoading("testUpdateWithLogs", false);
                 Swal.fire("Error", `Failed to load categories: ${err}`, "error");
             })
             .readCategoryTable();
     });
 
     $("#testGetRelatedWithLogs").on("click", function () {
-        const categoryId = prompt("Enter Category ID:");
-        if (categoryId) {
-            defaultLoadingSwalToast("obteniendo relaciones con logs...");
-            google.script.run
-                .withSuccessHandler((response) => {
-                    const result = JSON.parse(response);
-                    $("#debugOutput").text(JSON.stringify(result, null, 2));
-                    Swal.fire({
-                        icon: "success",
-                        title: "Success!",
-                        text: `Found ${result.data?.length || 0} related products`,
-                        timer: 2000
-                    });
-                })
-                .withFailureHandler((err) => {
-                    $("#debugOutput").text(`Error: ${err}`);
-                    Swal.fire("Error", "Failed to get related records with logs", "error");
-                })
-                .getCategoryRelatedRecordsWithLogs(Number(categoryId));
-        }
+        showInputModal({
+            title: "Get Related Records with Logs",
+            label: "Enter Category ID:",
+            placeholder: "e.g., 1",
+            inputType: "number",
+            onConfirm: (categoryId) => {
+                if (!categoryId) {
+                    Swal.fire("Error", "Please enter a Category ID", "error");
+                    return;
+                }
+                setButtonLoading("testGetRelatedWithLogs", true);
+                defaultLoadingSwalToast("obteniendo relaciones con logs...");
+                google.script.run
+                    .withSuccessHandler((response) => {
+                        setButtonLoading("testGetRelatedWithLogs", false);
+                        const result = JSON.parse(response);
+                        $("#debugOutput").text(JSON.stringify(result, null, 2));
+                        Swal.fire({
+                            icon: "success",
+                            title: "Success!",
+                            text: `Found ${result.data?.length || 0} related products`,
+                            timer: 2000
+                        });
+                    })
+                    .withFailureHandler((err) => {
+                        setButtonLoading("testGetRelatedWithLogs", false);
+                        $("#debugOutput").text(`Error: ${err}`);
+                        Swal.fire("Error", "Failed to get related records with logs", "error");
+                    })
+                    .getCategoryRelatedRecordsWithLogs(Number(categoryId));
+            }
+        });
     });
 
     $("#testGetCreationResult").on("click", function () {
+        setButtonLoading("testGetCreationResult", true);
         google.script.run
             .withSuccessHandler((response) => {
+                setButtonLoading("testGetCreationResult", false);
                 const result = JSON.parse(response);
                 $("#debugOutput").text(JSON.stringify(result, null, 2));
                 Swal.fire({
@@ -1615,6 +1915,7 @@
                 });
             })
             .withFailureHandler((err) => {
+                setButtonLoading("testGetCreationResult", false);
                 $("#debugOutput").text(`Error: ${err}`);
                 Swal.fire("Error", "Failed to get creation result", "error");
             })
@@ -1624,9 +1925,11 @@
     // ========== Data Integrity Tests ==========
 
     $("#testCheckIntegrity").on("click", function () {
+        setButtonLoading("testCheckIntegrity", true);
         defaultLoadingSwalToast("verificando integridad de la tabla...");
         google.script.run
             .withSuccessHandler((response) => {
+                setButtonLoading("testCheckIntegrity", false);
                 const data = JSON.parse(response);
                 $("#integrityOutput").text(JSON.stringify(data, null, 2));
                 Swal.fire({
@@ -1636,6 +1939,7 @@
                 });
             })
             .withFailureHandler((err) => {
+                setButtonLoading("testCheckIntegrity", false);
                 $("#integrityOutput").text(`Error: ${err}`);
                 Swal.fire("Error", "Failed to check integrity", "error");
             })
@@ -1643,25 +1947,37 @@
     });
 
     $("#testDeleteJunctionRecords").on("click", function () {
-        const orderId = prompt("Enter Order ID to delete junction records:");
-        if (orderId) {
-            defaultLoadingSwalToast("eliminando registros de junction...");
-            google.script.run
-                .withSuccessHandler((response) => {
-                    const data = JSON.parse(response);
-                    $("#integrityOutput").text(JSON.stringify(data, null, 2));
-                    Swal.fire({
-                        icon: data.status === 200 ? "success" : "error",
-                        title: "Junction Records Deleted",
-                        text: data.message || data.error
-                    });
-                })
-                .withFailureHandler((err) => {
-                    $("#integrityOutput").text(`Error: ${err}`);
-                    Swal.fire("Error", "Failed to delete junction records", "error");
-                })
-                .deleteOrderDetailsByOrderId(Number(orderId));
-        }
+        showInputModal({
+            title: "Delete Junction Records",
+            label: "Enter Order ID to delete junction records:",
+            placeholder: "e.g., 1",
+            inputType: "number",
+            onConfirm: (orderId) => {
+                if (!orderId) {
+                    Swal.fire("Error", "Please enter an Order ID", "error");
+                    return;
+                }
+                setButtonLoading("testDeleteJunctionRecords", true);
+                defaultLoadingSwalToast("eliminando registros de junction...");
+                google.script.run
+                    .withSuccessHandler((response) => {
+                        setButtonLoading("testDeleteJunctionRecords", false);
+                        const data = JSON.parse(response);
+                        $("#integrityOutput").text(JSON.stringify(data, null, 2));
+                        Swal.fire({
+                            icon: data.status === 200 ? "success" : "error",
+                            title: "Junction Records Deleted",
+                            text: data.message || data.error
+                        });
+                    })
+                    .withFailureHandler((err) => {
+                        setButtonLoading("testDeleteJunctionRecords", false);
+                        $("#integrityOutput").text(`Error: ${err}`);
+                        Swal.fire("Error", "Failed to delete junction records", "error");
+                    })
+                    .deleteOrderDetailsByOrderId(Number(orderId));
+            }
+        });
     });
 
     // ========== Query Alternatives Tests ==========
@@ -1673,10 +1989,12 @@
             return;
         }
 
+        setButtonLoading("testTextFinder", true);
         const startTime = performance.now();
         defaultLoadingSwalToast("consultando con TextFinder...");
         google.script.run
             .withSuccessHandler((response) => {
+                setButtonLoading("testTextFinder", false);
                 const endTime = performance.now();
                 const timeTaken = (endTime - startTime).toFixed(2);
                 advancedFeaturesModule.queryTimes.textFinder = timeTaken;
@@ -1691,6 +2009,7 @@
                 });
             })
             .withFailureHandler((err) => {
+                setButtonLoading("testTextFinder", false);
                 $("#queryOutput").text(`Error: ${err}`);
                 Swal.fire("Error", "TextFinder query failed", "error");
             })
@@ -1704,10 +2023,12 @@
             return;
         }
 
+        setButtonLoading("testFilterMethod", true);
         const startTime = performance.now();
         defaultLoadingSwalToast("consultando con Filter...");
         google.script.run
             .withSuccessHandler((response) => {
+                setButtonLoading("testFilterMethod", false);
                 const endTime = performance.now();
                 const timeTaken = (endTime - startTime).toFixed(2);
                 advancedFeaturesModule.queryTimes.filter = timeTaken;
@@ -1722,6 +2043,7 @@
                 });
             })
             .withFailureHandler((err) => {
+                setButtonLoading("testFilterMethod", false);
                 $("#queryOutput").text(`Error: ${err}`);
                 Swal.fire("Error", "Filter query failed", "error");
             })
@@ -1735,10 +2057,12 @@
             return;
         }
 
+        setButtonLoading("testNormalMethod", true);
         const startTime = performance.now();
         defaultLoadingSwalToast("consultando con método normal...");
         google.script.run
             .withSuccessHandler((response) => {
+                setButtonLoading("testNormalMethod", false);
                 const endTime = performance.now();
                 const timeTaken = (endTime - startTime).toFixed(2);
                 advancedFeaturesModule.queryTimes.normal = timeTaken;
@@ -1767,6 +2091,7 @@
                 });
             })
             .withFailureHandler((err) => {
+                setButtonLoading("testNormalMethod", false);
                 $("#queryOutput").text(`Error: ${err}`);
                 Swal.fire("Error", "Normal query failed", "error");
             })
@@ -1779,9 +2104,11 @@
         const tableName = $("#styleTableName").val();
         const colorScheme = $("#styleColorScheme").val();
 
+        setButtonLoading("applyColorScheme", true);
         defaultLoadingSwalToast("aplicando esquema de colores...");
         google.script.run
             .withSuccessHandler((response) => {
+                setButtonLoading("applyColorScheme", false);
                 const data = JSON.parse(response);
                 $("#styleOutput").text(JSON.stringify(data, null, 2));
                 Swal.fire({
@@ -1791,11 +2118,435 @@
                 });
             })
             .withFailureHandler((err) => {
+                setButtonLoading("applyColorScheme", false);
                 $("#styleOutput").text(`Error: ${err}`);
                 Swal.fire("Error", "Failed to apply color scheme", "error");
             })
             .applyColorToTable(tableName, colorScheme);
     });
 
+    /****************************************************
+     * Dark Mode Toggle (System Default + Persistence)
+     ****************************************************/
+    function getSystemTheme() {
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function applyTheme(theme) {
+        const root = document.documentElement;
+        if (theme === 'system') {
+            theme = getSystemTheme();
+        }
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+        updateThemeIcon(theme === 'dark' ? 'dark' : (theme === 'system' ? getSystemTheme() : 'light'));
+    }
+
+    function updateThemeIcon(theme) {
+        const icon = document.getElementById('themeIcon');
+        if (icon) {
+            icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
+        }
+    }
+
+    function initTheme() {
+        const saved = localStorage.getItem('theme') || 'system';
+        applyTheme(saved);
+        
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'system' || !savedTheme) {
+                    applyTheme('system');
+                }
+            });
+        }
+    }
+
+    $('#themeToggle').on('click', function() {
+        const current = localStorage.getItem('theme') || 'system';
+        let next;
+        if (current === 'system') {
+            next = getSystemTheme() === 'dark' ? 'light' : 'dark';
+        } else if (current === 'dark') {
+            next = 'light';
+        } else {
+            next = 'system';
+        }
+        localStorage.setItem('theme', next);
+        applyTheme(next);
     });
+
+    initTheme();
+
+    /****************************************************
+     * Input Modal (Tailwind-based, replaces browser prompt)
+     ****************************************************/
+    function showInputModal({ title, label, placeholder = "", inputType = "text", onConfirm, onCancel }) {
+        const modalId = 'inputModal_' + Date.now();
+        const $modal = $(`
+            <div id="${modalId}" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+                <div class="w-full max-w-md mx-4 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+                    <div class="p-6 border-b border-slate-200 dark:border-slate-700">
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">${title}</h3>
+                    </div>
+                    <div class="p-6">
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">${label}</label>
+                        <input 
+                            type="${inputType}" 
+                            id="${modalId}_input" 
+                            placeholder="${placeholder}"
+                            class="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+                            autofocus
+                        />
+                        <div class="flex gap-2 justify-end">
+                            <button 
+                                type="button" 
+                                class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                data-action="cancel"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                class="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+                                data-action="confirm"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+        
+        $('body').append($modal);
+        $modal.removeClass('hidden').addClass('flex');
+        
+        const $input = $modal.find(`#${modalId}_input`);
+        $input.focus();
+        
+        $input.on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                $modal.find('[data-action="confirm"]').trigger('click');
+            } else if (e.key === 'Escape') {
+                $modal.find('[data-action="cancel"]').trigger('click');
+            }
+        });
+        
+        $modal.find('[data-action="confirm"]').on('click', function() {
+            const value = $input.val();
+            $modal.remove();
+            if (onConfirm) onConfirm(value);
+        });
+        
+        $modal.find('[data-action="cancel"]').on('click', function() {
+            $modal.remove();
+            if (onCancel) onCancel();
+        });
+        
+        $modal.on('click', function(e) {
+            if ($(e.target).is($modal)) {
+                $modal.remove();
+                if (onCancel) onCancel();
+            }
+        });
+    }
+
+    /****************************************************
+     * Search Bar + Command Palette
+     ****************************************************/
+    
+    // Function registry: maps function names to modules and button IDs
+    const functionRegistry = [
+        // Category Module
+        { func: 'readCategoryTable', module: 'categoryModule', buttonId: 'refreshCategoryTable', label: 'Read Categories', keywords: ['read', 'category', 'categories', 'get', 'load'] },
+        { func: 'createCategory', module: 'categoryModule', buttonId: 'createNewCategory', label: 'Create Category', keywords: ['create', 'category', 'new', 'add'] },
+        { func: 'updateCategory', module: 'categoryModule', buttonId: null, label: 'Update Category', keywords: ['update', 'edit', 'category', 'modify'] },
+        { func: 'deleteCategory', module: 'categoryModule', buttonId: null, label: 'Delete Category', keywords: ['delete', 'remove', 'category'] },
+        { func: 'getCategoryRelatedRecords', module: 'categoryModule', buttonId: null, label: 'Get Related Records', keywords: ['related', 'getrelated', 'relationship', 'join'] },
+        
+        // Order Module
+        { func: 'readOrderTable', module: 'orderModule', buttonId: 'refreshOrderTable', label: 'Read Orders', keywords: ['read', 'order', 'orders', 'get', 'load'] },
+        { func: 'createOrder', module: 'orderModule', buttonId: 'createNewOrder', label: 'Create Order', keywords: ['create', 'order', 'new', 'add'] },
+        { func: 'updateOrder', module: 'orderModule', buttonId: null, label: 'Update Order', keywords: ['update', 'edit', 'order', 'modify'] },
+        { func: 'deleteOrder', module: 'orderModule', buttonId: null, label: 'Delete Order', keywords: ['delete', 'remove', 'order'] },
+        { func: 'getRelatedCustomerRecords', module: 'orderModule', buttonId: null, label: 'Get Related Customer', keywords: ['related', 'customer', 'getrelated'] },
+        
+        // Product Module
+        { func: 'readProductTable', module: 'productModule', buttonId: 'refreshProductTable', label: 'Read Products', keywords: ['read', 'product', 'products', 'get', 'load'] },
+        { func: 'createProduct', module: 'productModule', buttonId: 'createNewProduct', label: 'Create Product', keywords: ['create', 'product', 'new', 'add'] },
+        { func: 'updateProduct', module: 'productModule', buttonId: null, label: 'Update Product', keywords: ['update', 'edit', 'product', 'modify'] },
+        { func: 'deleteProduct', module: 'productModule', buttonId: null, label: 'Delete Product', keywords: ['delete', 'remove', 'product'] },
+        
+        // Customer Module
+        { func: 'readCustomerTable', module: 'customerModule', buttonId: 'refreshCustomerTable', label: 'Read Customers', keywords: ['read', 'customer', 'customers', 'get', 'load'] },
+        { func: 'createCustomer', module: 'customerModule', buttonId: 'createNewCustomer', label: 'Create Customer', keywords: ['create', 'customer', 'new', 'add'] },
+        { func: 'updateCustomer', module: 'customerModule', buttonId: null, label: 'Update Customer', keywords: ['update', 'edit', 'customer', 'modify'] },
+        { func: 'deleteCustomer', module: 'customerModule', buttonId: null, label: 'Delete Customer', keywords: ['delete', 'remove', 'customer'] },
+        
+        // Order Detail Module
+        { func: 'readOrderDetailTable', module: 'orderDetailModule', buttonId: 'refreshOrderDetailTable', label: 'Read Order Details', keywords: ['read', 'orderdetail', 'order detail', 'junction', 'get', 'load'] },
+        { func: 'createOrderDetail', module: 'orderDetailModule', buttonId: 'createNewOrderDetail', label: 'Create Order Detail', keywords: ['create', 'orderdetail', 'new', 'add'] },
+        { func: 'updateOrderDetail', module: 'orderDetailModule', buttonId: null, label: 'Update Order Detail', keywords: ['update', 'edit', 'orderdetail', 'modify'] },
+        { func: 'deleteOrderDetail', module: 'orderDetailModule', buttonId: null, label: 'Delete Order Detail', keywords: ['delete', 'remove', 'orderdetail'] },
+        { func: 'readOrderDetailFromOrder', module: 'orderDetailModule', buttonId: null, label: 'Read from Order', keywords: ['read', 'orderdetail', 'from order', 'junction'] },
+        { func: 'readOrderDetailFromProduct', module: 'orderDetailModule', buttonId: null, label: 'Read from Product', keywords: ['read', 'orderdetail', 'from product', 'junction'] },
+        
+        // Advanced Features
+        { func: 'updateCategoryWithLogs', module: 'advancedFeaturesModule', buttonId: 'testUpdateWithLogs', label: 'Update with Logs', keywords: ['update', 'logs', 'logging', 'debug'] },
+        { func: 'getCategoryRelatedRecordsWithLogs', module: 'advancedFeaturesModule', buttonId: 'testGetRelatedWithLogs', label: 'Get Related with Logs', keywords: ['getrelated', 'related', 'logs', 'logging', 'debug'] },
+        { func: 'getLastCreationResult', module: 'advancedFeaturesModule', buttonId: 'testGetCreationResult', label: 'Get Creation Result', keywords: ['creation', 'result', 'create', 'last'] },
+        { func: 'checkOrderDetailIntegrity', module: 'advancedFeaturesModule', buttonId: 'testCheckIntegrity', label: 'Check Integrity', keywords: ['integrity', 'check', 'validate', 'verify'] },
+        { func: 'deleteOrderDetailsByOrderId', module: 'advancedFeaturesModule', buttonId: 'testDeleteJunctionRecords', label: 'Delete Junction Records', keywords: ['delete', 'junction', 'records', 'orderid'] },
+        { func: 'getCategoryRelatedRecordsTextFinder', module: 'advancedFeaturesModule', buttonId: 'testTextFinder', label: 'Query with TextFinder', keywords: ['textfinder', 'query', 'search', 'filter'] },
+        { func: 'getCategoryRelatedRecordsFilter', module: 'advancedFeaturesModule', buttonId: 'testFilterMethod', label: 'Query with Filter', keywords: ['filter', 'query', 'search'] },
+        { func: 'getCategoryRelatedRecordsNormal', module: 'advancedFeaturesModule', buttonId: 'testNormalMethod', label: 'Query Normal', keywords: ['normal', 'query', 'fast', 'standard'] },
+        { func: 'applyColorToTable', module: 'advancedFeaturesModule', buttonId: 'applyColorScheme', label: 'Apply Color Scheme', keywords: ['color', 'scheme', 'styling', 'apply'] }
+    ];
+    
+    const moduleSuggestions = [
+        { id: 'categoryModule', label: 'Categorias', keywords: ['category', 'categoria', 'categories', 'categorias'] },
+        { id: 'orderModule', label: 'Ordenes', keywords: ['order', 'orden', 'orders', 'ordenes'] },
+        { id: 'productModule', label: 'Productos', keywords: ['product', 'producto', 'products', 'productos'] },
+        { id: 'customerModule', label: 'Clientes', keywords: ['customer', 'cliente', 'customers', 'clientes'] },
+        { id: 'orderDetailModule', label: 'Detalle de Orden', keywords: ['orderdetail', 'order detail', 'detalle orden', 'orderdetail', 'junction'] },
+        { id: 'advancedFeaturesModule', label: 'Advanced Features', keywords: ['advanced', 'features', 'getrelatedrecords', 'getrelated', 'checkintegrity', 'textfinder', 'filter', 'query'] }
+    ];
+
+    function filterSuggestions(query) {
+        if (!query) return moduleSuggestions;
+        const lowerQuery = query.toLowerCase();
+        
+        // Search modules
+        const moduleMatches = moduleSuggestions.filter(s => 
+            s.label.toLowerCase().includes(lowerQuery) ||
+            s.keywords.some(k => k.toLowerCase().includes(lowerQuery))
+        );
+        
+        // Search functions
+        const functionMatches = functionRegistry.filter(f => 
+            f.func.toLowerCase().includes(lowerQuery) ||
+            f.label.toLowerCase().includes(lowerQuery) ||
+            f.keywords.some(k => k.toLowerCase().includes(lowerQuery))
+        );
+        
+        // Combine and limit results
+        const results = [];
+        
+        // Add module matches (max 3)
+        moduleMatches.slice(0, 3).forEach(m => {
+            results.push({ type: 'module', ...m });
+        });
+        
+        // Add function matches (max 7)
+        functionMatches.slice(0, 7).forEach(f => {
+            results.push({ type: 'function', ...f });
+        });
+        
+        return results.slice(0, 10);
+    }
+
+    function navigateToModule(moduleId, buttonId = null) {
+        const $navItem = $(`.nav-item[data-module="${moduleId}"]`);
+        if ($navItem.length) {
+            $navItem.trigger('click');
+            
+            // Highlight button if provided
+            if (buttonId) {
+                setTimeout(() => {
+                    const $button = $(`#${buttonId}`);
+                    if ($button.length) {
+                        // Scroll to button
+                        $button[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        // Highlight animation
+                        $button.addClass('ring-4 ring-indigo-500 ring-opacity-75');
+                        setTimeout(() => {
+                            $button.removeClass('ring-4 ring-indigo-500 ring-opacity-75');
+                        }, 2000);
+                    }
+                }, 300);
+            }
+        }
+    }
+
+    /**
+     * Highlights all occurrences of query in text (case-insensitive)
+     * @param {string} text - The text to highlight
+     * @param {string} query - The search query
+     * @returns {string} - HTML string with all matches highlighted
+     */
+    function highlightAllMatches(text, query) {
+        if (!query || !text) return text;
+        // Escape special regex characters and create case-insensitive regex
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    }
+
+    // Search bar typeahead
+    const $searchInput = $('#globalSearch');
+    let $suggestionsDropdown = null;
+    let currentSearchQuery = '';
+
+    function showSuggestions(suggestions, query = '') {
+        if (!$searchInput.length) return;
+        
+        if (!$suggestionsDropdown) {
+            $suggestionsDropdown = $('<div id="searchSuggestions" class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 max-h-64 overflow-y-auto"></div>');
+            $searchInput.parent().css('position', 'relative').append($suggestionsDropdown);
+        }
+        
+        if (suggestions.length === 0) {
+            $suggestionsDropdown.hide();
+            return;
+        }
+
+        const html = suggestions.map(s => {
+            if (s.type === 'function') {
+                const highlightedLabel = highlightAllMatches(s.label, query);
+                const highlightedFunc = highlightAllMatches(s.func, query);
+                const highlightedModule = highlightAllMatches(s.module.replace('Module', ''), query);
+                return `
+                    <button type="button" class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-200" data-module="${s.module}" data-button-id="${s.buttonId || ''}">
+                        <div class="font-medium">${highlightedLabel}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">
+                            <code class="text-xs">${highlightedFunc}</code> • ${highlightedModule}
+                        </div>
+                    </button>
+                `;
+            } else {
+                const highlightedLabel = highlightAllMatches(s.label, query);
+                return `
+                    <button type="button" class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-200" data-module="${s.id}">
+                        <div class="font-medium">${highlightedLabel}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">Module</div>
+                    </button>
+                `;
+            }
+        }).join('');
+        $suggestionsDropdown.html(html).show();
+
+        $suggestionsDropdown.find('button').on('click', function() {
+            const moduleId = $(this).data('module');
+            const buttonId = $(this).data('button-id');
+            navigateToModule(moduleId, buttonId);
+            $searchInput.val('');
+            $suggestionsDropdown.hide();
+        });
+    }
+
+    if ($searchInput.length) {
+        $searchInput.on('input', function() {
+            const query = $(this).val();
+            currentSearchQuery = query;
+            const suggestions = filterSuggestions(query);
+            showSuggestions(suggestions, query);
+        });
+
+        $searchInput.on('keydown', function(e) {
+            if (e.key === 'Escape') {
+                $suggestionsDropdown?.hide();
+            } else if (e.key === 'Enter' && $suggestionsDropdown && $suggestionsDropdown.is(':visible')) {
+                const $first = $suggestionsDropdown.find('button').first();
+                if ($first.length) {
+                    $first.trigger('click');
+                }
+            }
+        });
+
+        $(document).on('click', function(e) {
+            if (!$searchInput.is(e.target) && !$suggestionsDropdown?.is(e.target) && !$suggestionsDropdown?.has(e.target).length) {
+                $suggestionsDropdown?.hide();
+            }
+        });
+    }
+
+    // Command Palette (Cmd/Ctrl+K)
+    const $commandPalette = $('<div id="commandPalette" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm"><div class="w-full max-w-lg mx-4 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden"><div class="p-4 border-b border-slate-200 dark:border-slate-700"><input type="text" id="commandPaletteInput" placeholder="Type to search modules..." class="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"/></div><div id="commandPaletteResults" class="max-h-96 overflow-y-auto"></div></div></div>');
+    $('body').append($commandPalette);
+
+    function showCommandPalette() {
+        $commandPalette.removeClass('hidden').addClass('flex');
+        $('#commandPaletteInput').val('').focus();
+        updateCommandPaletteResults('');
+    }
+
+    function hideCommandPalette() {
+        $commandPalette.addClass('hidden').removeClass('flex');
+    }
+
+    function updateCommandPaletteResults(query) {
+        const suggestions = filterSuggestions(query);
+        const $results = $('#commandPaletteResults');
+        if (suggestions.length === 0) {
+            $results.html('<div class="p-4 text-center text-slate-500 dark:text-slate-400">No results found</div>');
+            return;
+        }
+        const html = suggestions.map(s => {
+            if (s.type === 'function') {
+                const highlightedLabel = highlightAllMatches(s.label, query);
+                const highlightedFunc = highlightAllMatches(s.func, query);
+                const highlightedModule = highlightAllMatches(s.module.replace('Module', ''), query);
+                return `
+                    <button type="button" class="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700 last:border-0" data-module="${s.module}" data-button-id="${s.buttonId || ''}">
+                        <div class="font-medium">${highlightedLabel}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">
+                            <code class="text-xs">${highlightedFunc}</code> • ${highlightedModule} • Press Enter to navigate
+                        </div>
+                    </button>
+                `;
+            } else {
+                const highlightedLabel = highlightAllMatches(s.label, query);
+                return `
+                    <button type="button" class="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700 last:border-0" data-module="${s.id}">
+                        <div class="font-medium">${highlightedLabel}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">Press Enter to navigate</div>
+                    </button>
+                `;
+            }
+        }).join('');
+        $results.html(html);
+
+        $results.find('button').on('click', function() {
+            const moduleId = $(this).data('module');
+            const buttonId = $(this).data('button-id');
+            navigateToModule(moduleId, buttonId);
+            hideCommandPalette();
+        });
+    }
+
+    $('#commandPaletteInput').on('input', function() {
+        updateCommandPaletteResults($(this).val());
+    });
+
+    $('#commandPaletteInput').on('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideCommandPalette();
+        } else if (e.key === 'Enter') {
+            const $first = $('#commandPaletteResults button').first();
+            if ($first.length) {
+                $first.trigger('click');
+            }
+        }
+    });
+
+    $commandPalette.on('click', function(e) {
+        if ($(e.target).is($commandPalette)) {
+            hideCommandPalette();
+        }
+    });
+
+    $(document).on('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            showCommandPalette();
+        }
+    });
+});
 </script>

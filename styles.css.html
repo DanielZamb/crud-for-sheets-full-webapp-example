@@ -1,365 +1,89 @@
 <style>
   :root {
-    /* shadcn/ui color system - Dark theme (Dracula inspired) */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --primary: 258 90% 66%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 258 90% 66%;
-    --radius: 0.5rem;
+    --radius: 14px;
+    --font-sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+      "Segoe UI Emoji";
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
 
-    /* Fonts */
-    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, "Courier New", monospace;
+    /* TailAdmin-ish light palette */
+    --bg: 248 250 252; /* slate-50 */
+    --fg: 15 23 42; /* slate-900 */
+    --muted: 100 116 139; /* slate-500 */
+    --card: 255 255 255; /* white */
+    --border: 226 232 240; /* slate-200 */
+    --shadow: 2 6 23; /* slate-950 */
+
+    --primary: 79 70 229; /* indigo-600 */
+    --primary-700: 67 56 202; /* indigo-700 */
+
+    --success: 34 197 94; /* green-500 */
+    --info: 14 165 233; /* sky-500 */
+    --warning: 245 158 11; /* amber-500 */
+    --danger: 239 68 68; /* red-500 */
   }
 
-  * {
-    border-color: hsl(var(--border));
+  html,
+  body {
+    height: 100%;
   }
 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
     font-family: var(--font-sans);
+    color: rgb(var(--fg));
+    background: rgb(var(--bg));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* shadcn-like Card Component */
-  .card {
-    background-color: hsl(var(--card));
-    color: hsl(var(--card-foreground));
-    border-radius: calc(var(--radius) - 2px);
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  /* Spinner animation for loading states */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin {
+    animation: spin 1s linear infinite;
   }
 
-  .card-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid hsl(var(--border));
-    font-weight: 600;
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  /* ---- Plain-JS Offcanvas (kept for existing JS) ---- */
+  .offcanvas-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.45);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 50;
+  }
+  .offcanvas-backdrop.show {
+    opacity: 1;
   }
 
-  .card-body {
-    padding: 1.5rem;
-  }
-
-  .card-title {
-    font-weight: 600;
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-    margin: 0;
-  }
-
-  /* shadcn-like Button Components */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    border-radius: calc(var(--radius) - 2px);
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.2s;
-    cursor: pointer;
-    border: 1px solid transparent;
-    padding: 0.5rem 1rem;
-    height: 2.25rem;
-  }
-
-  .btn:focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
-  }
-
-  .btn:disabled {
-    pointer-events: none;
-    opacity: 0.5;
-  }
-
-  /* Button Variants */
-  .btn-primary {
-    background-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-  }
-
-  .btn-primary:hover {
-    background-color: hsl(var(--primary) / 0.9);
-  }
-
-  .btn-secondary {
-    background-color: hsl(var(--secondary));
-    color: hsl(var(--secondary-foreground));
-  }
-
-  .btn-secondary:hover {
-    background-color: hsl(var(--secondary) / 0.8);
-  }
-
-  .btn-success {
-    background-color: hsl(142 76% 36%);
-    color: hsl(210 40% 98%);
-  }
-
-  .btn-success:hover {
-    background-color: hsl(142 76% 36% / 0.9);
-  }
-
-  .btn-danger {
-    background-color: hsl(var(--destructive));
-    color: hsl(var(--destructive-foreground));
-  }
-
-  .btn-danger:hover {
-    background-color: hsl(var(--destructive) / 0.9);
-  }
-
-  .btn-warning {
-    background-color: hsl(38 92% 50%);
-    color: hsl(222.2 84% 4.9%);
-  }
-
-  .btn-warning:hover {
-    background-color: hsl(38 92% 50% / 0.9);
-  }
-
-  .btn-info {
-    background-color: hsl(199 89% 48%);
-    color: hsl(210 40% 98%);
-  }
-
-  .btn-info:hover {
-    background-color: hsl(199 89% 48% / 0.9);
-  }
-
-  /* Outline Button Variants */
-  .btn-outline {
-    background-color: transparent;
-    border: 1px solid hsl(var(--border));
-    color: hsl(var(--foreground));
-  }
-
-  .btn-outline-primary {
-    border-color: hsl(var(--primary));
-    color: hsl(var(--primary));
-  }
-
-  .btn-outline-primary:hover {
-    background-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-  }
-
-  .btn-outline-secondary {
-    border-color: hsl(var(--secondary));
-    color: hsl(var(--secondary-foreground));
-  }
-
-  .btn-outline-secondary:hover {
-    background-color: hsl(var(--secondary));
-  }
-
-  .btn-outline-success {
-    border-color: hsl(142 76% 36%);
-    color: hsl(142 76% 36%);
-  }
-
-  .btn-outline-success:hover {
-    background-color: hsl(142 76% 36%);
-    color: hsl(210 40% 98%);
-  }
-
-  .btn-outline-danger {
-    border-color: hsl(var(--destructive));
-    color: hsl(var(--destructive));
-  }
-
-  .btn-outline-danger:hover {
-    background-color: hsl(var(--destructive));
-    color: hsl(var(--destructive-foreground));
-  }
-
-  .btn-outline-warning {
-    border-color: hsl(38 92% 50%);
-    color: hsl(38 92% 50%);
-  }
-
-  .btn-outline-warning:hover {
-    background-color: hsl(38 92% 50%);
-    color: hsl(222.2 84% 4.9%);
-  }
-
-  /* Button Sizes */
-  .btn-sm {
-    height: 2rem;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.8125rem;
-  }
-
-  .btn-lg {
-    height: 2.5rem;
-    padding: 0.625rem 1.25rem;
-    font-size: 0.9375rem;
-  }
-
-  /* Rounded Button */
-  .btn-rounded {
-    border-radius: 9999px;
-  }
-
-  /* shadcn-like Input Components */
-  .form-control,
-  .form-select {
-    display: block;
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: hsl(var(--foreground));
-    background-color: hsl(var(--background));
-    border: 1px solid hsl(var(--input));
-    border-radius: calc(var(--radius) - 2px);
-    transition: all 0.2s;
-  }
-
-  .form-control:focus,
-  .form-select:focus {
-    outline: none;
-    border-color: hsl(var(--ring));
-    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
-  }
-
-  .form-control::placeholder {
-    color: hsl(var(--muted-foreground));
-  }
-
-  .form-label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-    color: hsl(var(--foreground));
-  }
-
-  /* shadcn-like Table Styles */
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
-  }
-
-  .table thead {
-    background-color: hsl(var(--muted));
-  }
-
-  .table th {
-    padding: 0.75rem;
-    text-align: left;
-    font-weight: 600;
-    color: hsl(var(--foreground));
-    border-bottom: 1px solid hsl(var(--border));
-  }
-
-  .table td {
-    padding: 0.75rem;
-    border-bottom: 1px solid hsl(var(--border));
-  }
-
-  .table tbody tr:hover {
-    background-color: hsl(var(--muted) / 0.5);
-  }
-
-  .table-striped tbody tr:nth-child(odd) {
-    background-color: hsl(var(--muted) / 0.3);
-  }
-
-  .table-bordered {
-    border: 1px solid hsl(var(--border));
-  }
-
-  .table-bordered th,
-  .table-bordered td {
-    border: 1px solid hsl(var(--border));
-  }
-
-  /* Navbar Styles */
-  .navbar {
-    background-color: hsl(var(--card));
-    border-bottom: 1px solid hsl(var(--border));
-    padding: 1rem;
-  }
-
-  .navbar-brand {
-    font-weight: 600;
-    font-size: 1.125rem;
-    color: hsl(var(--foreground));
-    text-decoration: none;
-  }
-
-  .navbar-toggler {
-    background-color: transparent;
-    border: 1px solid hsl(var(--border));
-    border-radius: calc(var(--radius) - 2px);
-    padding: 0.5rem;
-    color: hsl(var(--foreground));
-    cursor: pointer;
-  }
-
-  .navbar-toggler-icon {
-    display: inline-block;
-    width: 1.5rem;
-    height: 1.5rem;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 100%;
-  }
-
-  /* Offcanvas Styles (Bootstrap JS compatible) */
   .offcanvas {
     position: fixed;
+    top: 0;
     bottom: 0;
-    z-index: 1045;
+    z-index: 60;
     display: flex;
     flex-direction: column;
     max-width: 100%;
     visibility: hidden;
-    background-color: hsl(var(--card));
-    background-clip: padding-box;
-    outline: 0;
-    transition: transform 0.3s ease-in-out;
+    background: rgb(var(--card));
+    border: 1px solid rgb(var(--border));
+    box-shadow: 0 24px 48px rgba(2, 6, 23, 0.18);
+    transition: transform 0.25s ease, visibility 0.25s ease;
   }
 
   .offcanvas-start {
-    top: 0;
     left: 0;
-    width: 400px;
-    border-right: 1px solid hsl(var(--border));
+    width: 18rem; /* 288px */
     transform: translateX(-100%);
+    border-right: 1px solid rgb(var(--border));
   }
 
   .offcanvas-end {
-    top: 0;
     right: 0;
-    width: 400px;
-    border-left: 1px solid hsl(var(--border));
+    width: 28rem; /* 448px */
     transform: translateX(100%);
+    border-left: 1px solid rgb(var(--border));
   }
 
   .offcanvas.show {
@@ -371,272 +95,1054 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem;
-    border-bottom: 1px solid hsl(var(--border));
+    padding: 14px 16px;
+    border-bottom: 1px solid rgb(var(--border));
   }
 
   .offcanvas-title {
     margin: 0;
-    font-weight: 600;
-    font-size: 1.125rem;
-    color: hsl(var(--foreground));
-  }
-
-  .btn-close {
-    background: transparent;
-    border: 0;
-    padding: 0.5rem;
-    cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.2s;
-  }
-
-  .btn-close:hover {
-    opacity: 1;
-  }
-
-  .btn-close::before {
-    content: "×";
-    font-size: 1.5rem;
-    color: hsl(var(--foreground));
-  }
-
-  .btn-close-white::before {
-    color: hsl(var(--foreground));
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    font-size: 0.95rem;
   }
 
   .offcanvas-body {
-    flex-grow: 1;
-    padding: 1rem;
-    overflow-y: auto;
+    flex: 1;
+    overflow: auto;
+    padding: 12px;
   }
 
-  /* Nav Styles */
+  .btn-close {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: rgb(var(--muted));
+  }
+  .btn-close:hover {
+    background: rgb(241 245 249);
+    color: rgb(var(--fg));
+  }
+  .btn-close::before {
+    content: "×";
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  /* Make the left sidebar act static on desktop */
+  @media (min-width: 1024px) {
+    #offcanvasSidebar.offcanvas-start {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      transform: none;
+      visibility: visible;
+      z-index: 10;
+      box-shadow: none;
+      border-left: 0;
+    }
+    .offcanvas-backdrop {
+      display: none;
+    }
+  }
+
+  /* ---- Carousel visibility (existing JS toggles .active) ---- */
+  .carousel {
+    position: relative;
+    padding-bottom: 30px; /* Extra bottom spacing */
+  }
+
+  .carousel-item {
+    display: none;
+  }
+  .carousel-item.active {
+    display: block;
+  }
+
+
+  /* ---- Nav list (sidebar) ---- */
   .nav {
-    display: flex;
-    flex-direction: column;
     list-style: none;
     padding: 0;
     margin: 0;
-  }
-
-  .nav-item {
-    margin-bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .nav-link {
     display: flex;
     align-items: center;
-    padding: 0.75rem 1rem;
-    color: hsl(var(--muted-foreground));
-    text-decoration: none;
-    border-radius: calc(var(--radius) - 2px);
-    transition: all 0.2s;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: 12px;
+    color: rgb(51 65 85);
     cursor: pointer;
+    user-select: none;
   }
 
   .nav-link:hover {
-    background-color: hsl(var(--muted));
-    color: hsl(var(--foreground));
+    background: rgb(241 245 249);
+    color: rgb(15 23 42);
   }
 
+  .nav-item.active .nav-link,
   .nav-link.active {
-    background-color: hsl(var(--primary) / 0.1);
-    color: hsl(var(--primary));
+    background: rgba(79, 70, 229, 0.1);
+    color: rgb(var(--primary));
   }
 
-  /* Carousel Styles (Bootstrap JS compatible) */
-  .carousel {
-    position: relative;
-  }
-
-  .carousel-inner {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .carousel-item {
-    position: relative;
-    display: none;
-    float: left;
-    width: 100%;
-    margin-right: -100%;
-    backface-visibility: hidden;
-    transition: transform 0.6s ease-in-out;
-  }
-
-  .carousel-item.active {
-    display: block;
-  }
-
-  .carousel-control-prev,
-  .carousel-control-next {
-    position: absolute;
-    top: 0;
-    bottom: auto;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .carousel-control-prev {
-    left: 0;
-  }
-
-  .carousel-control-next {
-    right: 0;
-  }
-
-  /* Utility Classes */
-  .text-primary {
-    color: hsl(var(--primary)) !important;
-  }
-
-  .text-secondary {
-    color: hsl(var(--muted-foreground)) !important;
-  }
-
-  .text-success {
-    color: hsl(142 76% 36%) !important;
-  }
-
-  .text-danger {
-    color: hsl(var(--destructive)) !important;
-  }
-
-  .text-warning {
-    color: hsl(38 92% 50%) !important;
-  }
-
-  .text-info {
-    color: hsl(199 89% 48%) !important;
-  }
-
-  /* Select2 Dark Theme */
-  .select2-container--default .select2-selection--single {
-    background-color: hsl(var(--background));
-    border: 1px solid hsl(var(--input));
-    border-radius: calc(var(--radius) - 2px);
-    height: 2.25rem;
-  }
-
-  .select2-container--default .select2-selection--single .select2-selection__rendered {
-    color: hsl(var(--foreground));
-    line-height: 2.25rem;
-    padding-left: 0.75rem;
-  }
-
-  .select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 2.25rem;
-    right: 0.5rem;
-  }
-
-  .select2-dropdown {
-    background-color: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    border-radius: calc(var(--radius) - 2px);
-  }
-
-  .select2-results__option {
-    color: hsl(var(--foreground));
-    padding: 0.5rem 0.75rem;
-  }
-
-  .select2-results__option--highlighted {
-    background-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-  }
-
-  .select2-search input {
-    background-color: hsl(var(--background));
-    border: 1px solid hsl(var(--input));
-    color: hsl(var(--foreground));
-  }
-
-  /* DataTables Dark Theme */
+  /* ---- DataTables + Select2 light polish ---- */
   .dataTables_wrapper {
-    color: hsl(var(--foreground));
+    font-size: 0.875rem;
+    color: rgb(var(--fg));
   }
 
-  .dataTables_wrapper .dataTables_length select {
-    background-color: hsl(var(--background));
-    border: 1px solid hsl(var(--input));
-    color: hsl(var(--foreground));
-    border-radius: calc(var(--radius) - 2px);
-    padding: 0.5rem;
-  }
-
+  .dataTables_wrapper .dataTables_length select,
   .dataTables_wrapper .dataTables_filter input {
-    background-color: hsl(var(--background));
-    border: 1px solid hsl(var(--input));
-    color: hsl(var(--foreground));
-    border-radius: calc(var(--radius) - 2px);
-    padding: 0.5rem;
+    border: 1px solid rgb(var(--border));
+    border-radius: 12px;
+    padding: 8px 10px;
+    background: rgb(255 255 255);
+    outline: none;
+  }
+
+  .dataTables_wrapper .dataTables_filter input:focus,
+  .dataTables_wrapper .dataTables_length select:focus {
+    border-color: rgba(79, 70, 229, 0.6);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14);
   }
 
   .dataTables_wrapper .dataTables_paginate .paginate_button {
-    color: hsl(var(--foreground)) !important;
-    border: 1px solid hsl(var(--border));
-    background-color: hsl(var(--card));
-    border-radius: calc(var(--radius) - 2px);
-    padding: 0.5rem 0.75rem;
-    margin: 0 0.25rem;
+    border: 1px solid rgb(var(--border)) !important;
+    border-radius: 12px !important;
+    padding: 8px 10px !important;
+    margin: 0 2px !important;
+    background: rgb(255 255 255) !important;
+    color: rgb(var(--fg)) !important;
   }
 
   .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-    background-color: hsl(var(--muted));
-    color: hsl(var(--foreground)) !important;
+    background: rgb(241 245 249) !important;
+    border-color: rgb(var(--border)) !important;
   }
 
   .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-    background-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground)) !important;
-    border-color: hsl(var(--primary));
+    background: rgb(var(--primary)) !important;
+    border-color: rgb(var(--primary)) !important;
+    color: #fff !important;
   }
 
-  /* Code/Pre Styles */
-  pre,
-  code {
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
+  /* Tom Select styling */
+  /* tom-select bootstrap5 CSS relies on Bootstrap CSS variables (we don't load
+     Bootstrap CSS), so we hard-set backgrounds/borders here. */
+  
+  /* Light mode - explicit white background */
+  html:not(.dark) .ts-wrapper .ts-control,
+  html:not(.dark) .ts-wrapper.single .ts-control,
+  html:not(.dark) .ts-wrapper.multi .ts-control {
+    border: 1px solid rgb(var(--border)) !important;
+    border-radius: 12px !important;
+    padding: 8px 12px !important;
+    background-color: rgb(255, 255, 255) !important;
+    background-image: none !important;
+    color: rgb(51, 65, 85) !important;
+  }
+  html:not(.dark) .ts-wrapper .ts-control:focus,
+  html:not(.dark) .ts-wrapper.single .ts-control:focus,
+  html:not(.dark) .ts-wrapper.multi .ts-control:focus {
+    border-color: rgba(79, 70, 229, 0.6) !important;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14) !important;
+    background-color: rgb(255, 255, 255) !important;
+  }
+  html:not(.dark) .ts-dropdown {
+    background-color: rgb(255, 255, 255) !important;
+    border: 1px solid rgb(var(--border)) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 24px 48px rgba(2, 6, 23, 0.12) !important;
+  }
+  html:not(.dark) .ts-dropdown .option {
+    padding: 10px 12px !important;
+    background-color: rgb(255, 255, 255) !important;
+    color: rgb(51, 65, 85) !important;
+  }
+  html:not(.dark) .ts-dropdown .option:hover {
+    background-color: rgb(241, 245, 249) !important;
+  }
+  html:not(.dark) .ts-dropdown .option.active {
+    background: rgb(var(--primary)) !important;
+    color: #fff !important;
   }
 
-  pre {
-    background-color: hsl(var(--muted));
-    border: 1px solid hsl(var(--border));
-    border-radius: calc(var(--radius) - 2px);
-    padding: 1rem;
-    overflow-x: auto;
+  /* ---- Action icon buttons used inside DataTables (btn-custom) ---- */
+  .btn-custom {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border: 1px solid rgb(var(--border));
+    background: rgb(255 255 255);
+    color: rgb(51 65 85);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+  }
+  .btn-custom:hover {
+    background: rgb(241 245 249);
+    border-color: rgb(203 213 225);
+  }
+  .btn-custom:active {
+    transform: translateY(1px);
+  }
+  /* NOTE: These "semantic color" classes are used for icon-only `.btn-custom`
+     buttons in tables. Keep them scoped so they don't override regular `.btn`
+     (e.g. `class="btn btn-warning"`). */
+  .btn-custom.btn-warning:hover {
+    color: rgb(var(--warning));
+  }
+  .btn-custom.btn-danger:hover {
+    color: rgb(var(--danger));
+  }
+  .btn-custom.btn-info:hover {
+    color: rgb(var(--info));
   }
 
-  /* Responsive adjustments */
-  @media (max-width: 640px) {
-    .text-responsive {
-      font-size: 0.75rem;
-    }
+  /* Big right drawers for expanded content */
+  .offcanvas-size-xl {
+    width: 92vw;
+    max-width: 92vw;
   }
 
-  @media (min-width: 641px) {
-    .text-responsive {
-      font-size: 1rem;
-    }
+  /* ------------------------------------------------------------------ */
+  /* Legacy class support (keeps existing markup looking modern)          */
+  /* ------------------------------------------------------------------ */
+  .card {
+    border: 1px solid rgb(var(--border));
+    border-radius: 24px;
+    background: rgb(var(--card));
+    box-shadow: 0 1px 2px rgba(2, 6, 23, 0.06);
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgb(var(--border));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .card-body {
+    padding: 16px 20px;
+  }
+  .card-title {
+    margin: 0;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: rgb(var(--fg));
   }
 
-  /* Custom button group styles */
+  html:not(.dark) .card-title {
+    color: rgb(15 23 42);
+  }
+
+  html.dark .card-title {
+    color: rgb(var(--fg));
+  }
+
   .btn-group {
     display: inline-flex;
-    gap: 0.5rem;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
-  /* Offcanvas size variants */
-  .offcanvas-size-xl {
-    width: 90vw;
-    max-width: 90vw;
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 16px;
+    border: 1px solid rgb(var(--border));
+    background: rgb(255 255 255);
+    color: rgb(51 65 85);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn:hover {
+    background: rgb(241 245 249);
+  }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14);
+    border-color: rgba(79, 70, 229, 0.45);
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"],
+  .btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn-sm {
+    height: 34px;
+    border-radius: 14px;
+    padding: 0 12px;
+    font-size: 0.8125rem;
+  }
+  .btn-rounded {
+    border-radius: 9999px;
+  }
+
+  /* Filled button variants (Bootstrap-compatible names) */
+  .btn-primary {
+    background: rgb(var(--primary));
+    border-color: rgb(var(--primary));
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: rgb(var(--primary-700));
+    border-color: rgb(var(--primary-700));
+  }
+  .btn-success {
+    background: rgb(var(--success));
+    border-color: rgb(var(--success));
+    color: #fff;
+  }
+  .btn-success:hover {
+    background: rgba(var(--success), 0.9);
+    border-color: rgba(var(--success), 0.9);
+  }
+  .btn-info {
+    background: rgb(var(--info));
+    border-color: rgb(var(--info));
+    color: #fff;
+  }
+  .btn-info:hover {
+    background: rgba(var(--info), 0.9);
+    border-color: rgba(var(--info), 0.9);
+  }
+  .btn-warning {
+    background: rgb(var(--warning));
+    border-color: rgb(var(--warning));
+    color: #111827; /* gray-900 for contrast on amber */
+  }
+  .btn-warning:hover {
+    background: rgba(var(--warning), 0.9);
+    border-color: rgba(var(--warning), 0.9);
+  }
+  .btn-danger {
+    background: rgb(var(--danger));
+    border-color: rgb(var(--danger));
+    color: #fff;
+  }
+  .btn-danger:hover {
+    background: rgba(var(--danger), 0.9);
+    border-color: rgba(var(--danger), 0.9);
+  }
+
+  .btn-outline-primary {
+    border-color: rgba(79, 70, 229, 0.3);
+    color: rgb(var(--primary));
+    background: rgba(79, 70, 229, 0.06);
+  }
+  .btn-outline-primary:hover {
+    background: rgba(79, 70, 229, 0.1);
+  }
+  .btn-outline-secondary {
+    background: rgb(255 255 255);
+    color: rgb(51 65 85);
+  }
+  .btn-outline-success {
+    border-color: rgba(34, 197, 94, 0.35);
+    color: rgb(var(--success));
+    background: rgba(34, 197, 94, 0.08);
+  }
+  .btn-outline-success:hover {
+    background: rgba(34, 197, 94, 0.12);
+  }
+  .btn-outline-warning {
+    border-color: rgba(245, 158, 11, 0.35);
+    color: rgb(var(--warning));
+    background: rgba(245, 158, 11, 0.10);
+  }
+  .btn-outline-warning:hover {
+    background: rgba(245, 158, 11, 0.14);
+  }
+  .btn-outline-danger {
+    border-color: rgba(239, 68, 68, 0.35);
+    color: rgb(var(--danger));
+    background: rgba(239, 68, 68, 0.10);
+  }
+  .btn-outline-danger:hover {
+    background: rgba(239, 68, 68, 0.14);
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgb(51 65 85);
+    margin-bottom: 6px;
+  }
+
+  html.dark .form-label {
+    color: rgb(var(--fg));
+  }
+  .form-control,
+  .form-select {
+    width: 100%;
+    height: 42px;
+    border-radius: 14px;
+    border: 1px solid rgb(var(--border));
+    background: rgb(255 255 255);
+    padding: 0 12px;
+    font-size: 0.875rem;
+    outline: none;
+  }
+  .form-control:focus,
+  .form-select:focus {
+    border-color: rgba(79, 70, 229, 0.6);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14);
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+  }
+  .table thead th {
+    background: rgb(248 250 252);
+    color: rgb(51 65 85);
+    font-weight: 700;
+    padding: 12px 12px;
+    border-bottom: 1px solid rgb(var(--border));
+  }
+  .table tbody td {
+    padding: 12px 12px;
+    border-bottom: 1px solid rgb(var(--border));
+    color: rgb(30 41 59);
+  }
+  .table-hover tbody tr:hover {
+    background: rgb(248 250 252);
+  }
+
+  /* ============================================ */
+  /* Dark Mode Theme Overrides                   */
+  /* ============================================ */
+  html.dark {
+    --bg: 15 23 42;              /* slate-900 */
+    --fg: 248 250 252;           /* slate-50 */
+    --muted: 148 163 184;        /* slate-400 */
+    --card: 30 41 59;            /* slate-800 */
+    --border: 51 65 85;          /* slate-700 */
+    --border-strong: 71 85 105;  /* slate-600 */
+  }
+
+  html.dark body {
+    background: rgb(var(--bg));
+    color: rgb(var(--fg));
+  }
+
+  html.dark .offcanvas {
+    background: rgb(var(--card));
+    border-color: rgb(var(--border));
+  }
+
+  html.dark .offcanvas-backdrop {
+    background: rgba(2, 6, 23, 0.75);
+  }
+
+  html.dark .nav-link {
+    color: rgb(148 163 184);
+  }
+  html.dark .nav-link:hover {
+    background: rgb(51 65 85);
+    color: rgb(var(--fg));
+  }
+  html.dark .nav-item.active .nav-link,
+  html.dark .nav-link.active {
+    background: rgba(79, 70, 229, 0.2);
+    color: rgb(129 140 248);
+  }
+
+  html.dark .dataTables_wrapper .dataTables_length select,
+  html.dark .dataTables_wrapper .dataTables_filter input {
+    background: rgb(var(--card));
+    border-color: rgb(var(--border));
+    color: rgb(var(--fg));
+  }
+
+  html.dark .dataTables_wrapper .dataTables_paginate .paginate_button {
+    background: rgb(var(--card)) !important;
+    border-color: rgb(var(--border)) !important;
+    color: rgb(var(--fg)) !important;
+  }
+  html.dark .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: rgb(51 65 85) !important;
+  }
+  html.dark .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: rgb(var(--primary)) !important;
+  }
+
+  html.dark .ts-wrapper .ts-control,
+  html.dark .ts-wrapper.single .ts-control,
+  html.dark .ts-wrapper.multi .ts-control {
+    background-color: rgb(var(--card)) !important;
+    background-image: none !important;
+    border-color: rgb(var(--border)) !important;
+    color: rgb(var(--fg)) !important;
+  }
+  html.dark .ts-wrapper .ts-control:focus,
+  html.dark .ts-wrapper.single .ts-control:focus,
+  html.dark .ts-wrapper.multi .ts-control:focus {
+    border-color: rgba(79, 70, 229, 0.6) !important;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14) !important;
+    background-color: rgb(var(--card)) !important;
+  }
+  html.dark .ts-dropdown {
+    background-color: rgb(var(--card)) !important;
+    border-color: rgb(var(--border)) !important;
+  }
+  html.dark .ts-dropdown .option {
+    background-color: rgb(var(--card)) !important;
+    color: rgb(var(--fg)) !important;
+  }
+  html.dark .ts-dropdown .option:hover {
+    background-color: rgb(51, 65, 85) !important;
+  }
+  html.dark .ts-dropdown .option.active {
+    background: rgb(var(--primary)) !important;
+    color: #fff !important;
+  }
+
+  html.dark .btn-custom {
+    background: rgb(var(--card));
+    border-color: rgb(var(--border));
+    color: rgb(var(--fg));
+  }
+  html.dark .btn-custom:hover {
+    background: rgb(51 65 85);
+  }
+
+  /* Dark mode for legacy `.btn` buttons (keep variants intact) */
+  html.dark .btn:not(.btn-primary):not(.btn-success):not(.btn-info):not(.btn-warning):not(.btn-danger):not([class*="btn-outline-"]) {
+    background: rgb(var(--card));
+    border-color: rgb(var(--border));
+    color: rgb(var(--fg));
+  }
+  html.dark .btn:not(.btn-primary):not(.btn-success):not(.btn-info):not(.btn-warning):not(.btn-danger):not([class*="btn-outline-"]):hover {
+    background: rgb(51 65 85);
+  }
+
+  html.dark .card {
+    background: rgb(var(--card));
+    border-color: rgb(var(--border));
+    color: rgb(var(--fg));
+  }
+  html.dark .card-header {
+    border-color: rgb(var(--border));
+  }
+
+  html.dark .form-control,
+  html.dark .form-select {
+    background: rgb(var(--card));
+    border-color: rgb(var(--border));
+    color: rgb(var(--fg));
+  }
+
+  html.dark .table thead th {
+    background: rgb(30 41 59);
+    color: rgb(var(--fg));
+    border-color: rgb(var(--border));
+  }
+  html.dark .table tbody td {
+    border-color: rgb(var(--border));
+    color: rgb(var(--fg));
+  }
+  html.dark .table-hover tbody tr:hover {
+    background: rgb(30 41 59);
+  }
+
+  /* Dark mode overrides for Tailwind classes */
+  /* Ensure header switches properly */
+  header {
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  
+  /* Light mode - ensure header is white */
+  html:not(.dark) header.bg-white\/80,
+  html:not(.dark) header[class*="bg-white/80"] {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgb(226 232 240) !important;
+  }
+  
+  /* Dark mode header */
+  html.dark header {
+    background: rgba(30, 41, 59, 0.8) !important;
+    border-color: rgb(var(--border)) !important;
+  }
+
+  /* Light mode - ensure white backgrounds stay white */
+  html:not(.dark) .bg-white {
+    background-color: rgb(255, 255, 255) !important;
+  }
+
+  html:not(.dark) .bg-white\/80,
+  html:not(.dark) [class*="bg-white/80"] {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+  }
+
+  /* Dark mode - white backgrounds become dark */
+  html.dark .bg-white {
+    background-color: rgb(var(--card)) !important;
+  }
+
+  html.dark .bg-white\/80,
+  html.dark [class*="bg-white/80"] {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+  }
+
+  /* Ensure main card switches properly */
+  html.dark .rounded-3xl.border.bg-white,
+  html.dark [class*="rounded-3xl"][class*="border"][class*="bg-white"] {
+    background-color: rgb(var(--card)) !important;
+    border-color: rgb(var(--border)) !important;
+  }
+
+  html:not(.dark) .rounded-3xl.border.bg-white,
+  html:not(.dark) [class*="rounded-3xl"][class*="border"][class*="bg-white"] {
+    background-color: rgb(255, 255, 255) !important;
+    border-color: rgb(226 232 240) !important;
+  }
+
+  /* Light mode - ensure text colors are dark */
+  html:not(.dark) .text-slate-900,
+  html:not(.dark) [class*="text-slate-900"]:not([class*="dark:text"]) {
+    color: rgb(15 23 42) !important;
+  }
+
+  html:not(.dark) .text-slate-700,
+  html:not(.dark) [class*="text-slate-700"]:not([class*="dark:text"]) {
+    color: rgb(51 65 85) !important;
+  }
+
+  html:not(.dark) .text-slate-500,
+  html:not(.dark) [class*="text-slate-500"]:not([class*="dark:text"]) {
+    color: rgb(100 116 139) !important;
+  }
+
+  html:not(.dark) .text-slate-400,
+  html:not(.dark) [class*="text-slate-400"]:not([class*="dark:text"]) {
+    color: rgb(148 163 184) !important;
+  }
+
+  html:not(.dark) .text-slate-600,
+  html:not(.dark) [class*="text-slate-600"]:not([class*="dark:text"]) {
+    color: rgb(71 85 105) !important;
+  }
+
+  /* Dark mode - ensure text colors are light */
+  html.dark .text-slate-900,
+  html.dark [class*="text-slate-900"]:not([class*="dark:text"]) {
+    color: rgb(var(--fg)) !important;
+  }
+
+  html.dark .text-slate-700,
+  html.dark [class*="text-slate-700"]:not([class*="dark:text"]) {
+    color: rgb(var(--fg)) !important;
+  }
+
+  html.dark .text-slate-500,
+  html.dark [class*="text-slate-500"]:not([class*="dark:text"]) {
+    color: rgb(var(--muted)) !important;
+  }
+
+  html.dark .text-slate-400,
+  html.dark [class*="text-slate-400"]:not([class*="dark:text"]) {
+    color: rgb(148 163 184) !important;
+  }
+
+  html.dark .text-slate-600,
+  html.dark [class*="text-slate-600"]:not([class*="dark:text"]) {
+    color: rgb(148 163 184) !important;
+  }
+
+  html.dark .border-slate-200 {
+    border-color: rgb(var(--border)) !important;
+  }
+
+  html.dark .bg-slate-50 {
+    background-color: rgb(51 65 85) !important;
+  }
+
+  html.dark .bg-slate-100 {
+    background-color: rgb(51 65 85) !important;
+  }
+
+  html.dark .hover\:bg-slate-50:hover {
+    background-color: rgb(51 65 85) !important;
+  }
+
+  html.dark .rounded-3xl {
+    border-color: rgb(var(--border)) !important;
+  }
+
+  html.dark .shadow-sm {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  html.dark .offcanvas-title {
+    color: rgb(var(--fg)) !important;
+  }
+
+  html.dark .offcanvas-header {
+    border-color: rgb(var(--border)) !important;
+  }
+
+  html.dark .btn-close {
+    color: rgb(var(--fg)) !important;
+  }
+
+  html.dark .btn-close:hover {
+    background: rgb(51 65 85) !important;
+  }
+
+  /* Dark mode for main content area */
+  html.dark main {
+    background: rgb(var(--bg));
+  }
+
+  html.dark .min-h-full {
+    background: rgb(var(--bg));
+  }
+
+  /* Dark mode for cards and containers */
+  html.dark .rounded-3xl.border {
+    background: rgb(var(--card));
+    border-color: rgb(var(--border));
+  }
+
+  /* Light mode - ensure main card is white */
+  html:not(.dark) main .rounded-3xl.border.bg-white,
+  html:not(.dark) main [class*="rounded-3xl"][class*="border"][class*="bg-white"] {
+    background-color: rgb(255, 255, 255) !important;
+    border-color: rgb(226 232 240) !important;
+  }
+
+  /* Dark mode - main content card */
+  html.dark main .rounded-3xl.border.bg-white,
+  html.dark main [class*="rounded-3xl"][class*="border"][class*="bg-white"] {
+    background-color: rgb(var(--card)) !important;
+    border-color: rgb(var(--border)) !important;
+  }
+
+  /* Dark mode for buttons */
+  html.dark button.bg-white {
+    background-color: rgb(var(--card)) !important;
+    color: rgb(var(--fg)) !important;
+  }
+
+  html.dark button.border-slate-200 {
+    border-color: rgb(var(--border)) !important;
+  }
+
+  /* Dark mode for search suggestions */
+  html.dark #searchSuggestions {
+    background: rgb(var(--card));
+    border-color: rgb(var(--border));
+  }
+
+  html.dark #searchSuggestions button {
+    color: rgb(var(--fg));
+  }
+
+  html.dark #searchSuggestions button:hover {
+    background: rgb(51 65 85);
+  }
+
+  /* Dark mode for command palette */
+  html.dark #commandPalette .bg-white {
+    background-color: rgb(var(--card)) !important;
+  }
+
+  html.dark #commandPalette input {
+    background-color: rgb(30 41 59) !important;
+    color: rgb(var(--fg)) !important;
+    border-color: rgb(var(--border)) !important;
+  }
+
+  html.dark #commandPalette button {
+    color: rgb(var(--fg));
+  }
+
+  html.dark #commandPalette button:hover {
+    background: rgb(51 65 85);
+  }
+
+  /* Comprehensive dark mode overrides using attribute selectors */
+  html.dark [class*="bg-white"]:not([class*="dark:bg"]) {
+    background-color: rgb(var(--card)) !important;
+  }
+
+  html.dark [class*="text-slate-900"]:not([class*="dark:text"]),
+  html.dark [class*="text-slate-700"]:not([class*="dark:text"]) {
+    color: rgb(var(--fg)) !important;
+  }
+
+  html.dark [class*="text-slate-500"]:not([class*="dark:text"]) {
+    color: rgb(var(--muted)) !important;
+  }
+
+  html.dark [class*="border-slate-200"]:not([class*="dark:border"]) {
+    border-color: rgb(var(--border)) !important;
+  }
+
+  html.dark [class*="bg-slate-50"]:not([class*="dark:bg"]),
+  html.dark [class*="bg-slate-100"]:not([class*="dark:bg"]) {
+    background-color: rgb(51 65 85) !important;
+  }
+
+  /* Light mode - ensure these stay light */
+  html:not(.dark) [class*="text-slate-900"]:not([class*="dark:text"]),
+  html:not(.dark) [class*="text-slate-700"]:not([class*="dark:text"]) {
+    color: rgb(15 23 42) !important;
+  }
+
+  html:not(.dark) [class*="text-slate-500"]:not([class*="dark:text"]) {
+    color: rgb(100 116 139) !important;
+  }
+
+  /* Text elements - headings */
+  html:not(.dark) h1, html:not(.dark) h2, html:not(.dark) h3, 
+  html:not(.dark) h4, html:not(.dark) h5, html:not(.dark) h6 {
+    color: rgb(15 23 42);
+  }
+
+  html.dark h1, html.dark h2, html.dark h3, 
+  html.dark h4, html.dark h5, html.dark h6 {
+    color: rgb(var(--fg));
+  }
+
+  /* Form labels */
+  html:not(.dark) .form-label,
+  html:not(.dark) label {
+    color: rgb(51 65 85);
+  }
+
+  html.dark .form-label,
+  html.dark label {
+    color: rgb(var(--fg));
+  }
+
+  /* All text elements inside cards and containers */
+  html:not(.dark) .card,
+  html:not(.dark) .card-body,
+  html:not(.dark) .card-header {
+    color: rgb(15 23 42);
+  }
+
+  html.dark .card,
+  html.dark .card-body,
+  html.dark .card-header {
+    color: rgb(var(--fg));
+  }
+
+  /* Main content area text */
+  html:not(.dark) main {
+    color: rgb(15 23 42);
+  }
+
+  html.dark main {
+    color: rgb(var(--fg));
+  }
+
+  /* Text inside main that doesn't have explicit color classes */
+  html:not(.dark) main p,
+  html:not(.dark) main span:not([class*="text-"]),
+  html:not(.dark) main div:not([class*="text-"]) {
+    color: rgb(15 23 42);
+  }
+
+  html.dark main p,
+  html.dark main span:not([class*="text-"]),
+  html.dark main div:not([class*="text-"]) {
+    color: rgb(var(--fg));
+  }
+
+  /* Buttons text */
+  html:not(.dark) button[class*="text-slate"],
+  html:not(.dark) .btn[class*="text-slate"] {
+    color: inherit;
+  }
+
+  html.dark button[class*="text-slate"],
+  html.dark .btn[class*="text-slate"] {
+    color: rgb(var(--fg)) !important;
+  }
+
+  /* Font weights and sizes should inherit, but ensure colors switch */
+  /* html:not(.dark) .font-semibold,
+  html:not(.dark) .font-medium {
+    color: inherit;
+  } */
+
+  /* html.dark .font-semibold,
+  html.dark .font-medium {
+    color: rgb(var(--fg));
+  } */
+
+  /* Dark mode for all borders */
+  html.dark [class*="border-b"]:not([class*="dark:border"]) {
+    border-color: rgb(var(--border)) !important;
+  }
+
+  html:not(.dark) [class*="border-b"]:not([class*="dark:border"]) {
+    border-color: rgb(226 232 240) !important;
+  }
+
+  /* Placeholder text */
+  html:not(.dark) ::placeholder,
+  html:not(.dark) input::placeholder,
+  html:not(.dark) textarea::placeholder {
+    color: rgb(148 163 184);
+  }
+
+  html.dark ::placeholder,
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: rgb(148 163 184);
+  }
+
+  /* Override for elements with explicit slate colors that don't have dark: variant */
+  html.dark [class*="text-slate"]:not([class*="dark:text"]) {
+    color: rgb(var(--fg)) !important;
+  }
+
+  html:not(.dark) [class*="text-slate-900"]:not([class*="dark:text"]),
+  html:not(.dark) [class*="text-slate-700"]:not([class*="dark:text"]) {
+    color: rgb(15 23 42) !important;
+  }
+
+  html:not(.dark) [class*="text-slate-500"]:not([class*="dark:text"]),
+  html:not(.dark) [class*="text-slate-400"]:not([class*="dark:text"]),
+  html:not(.dark) [class*="text-slate-600"]:not([class*="dark:text"]) {
+    color: rgb(100 116 139) !important;
+  }
+
+  /* ============================================================
+   * SweetAlert2 (Swal) theming
+   * - SweetAlert2 is loaded from CDN and used as global `Swal`.
+   * - Most calls use the shorthand `Swal.fire(title, text, icon)`,
+   *   so CSS is the safest way to keep styling consistent across themes.
+   * ============================================================ */
+
+  /* Shared polish */
+  .swal2-popup {
+    border-radius: 18px;
+    font-family: var(--font-sans);
+  }
+  .swal2-title {
+    letter-spacing: -0.01em;
+    font-weight: 700;
+  }
+
+  /* Button styling (light mode) */
+  .swal2-styled.swal2-confirm {
+    background: rgb(var(--primary)) !important;
+  }
+  .swal2-styled.swal2-confirm:hover {
+    background: rgb(var(--primary-700)) !important;
+  }
+  .swal2-styled.swal2-cancel,
+  .swal2-styled.swal2-deny {
+    background: rgb(241 245 249) !important;
+    color: rgb(51 65 85) !important;
+  }
+
+  /* Dark mode popup + toast */
+  html.dark .swal2-popup {
+    background: rgb(var(--card)) !important;
+    color: rgb(var(--fg)) !important;
+    border: 1px solid rgb(var(--border)) !important;
+    box-shadow: 0 24px 48px rgba(2, 6, 23, 0.55) !important;
+  }
+  html.dark .swal2-title,
+  html.dark .swal2-html-container,
+  html.dark .swal2-content {
+    color: rgb(var(--fg)) !important;
+  }
+  html.dark .swal2-close {
+    color: rgb(var(--muted)) !important;
+  }
+
+  html.dark .swal2-styled.swal2-confirm {
+    background: rgb(var(--primary)) !important;
+  }
+  html.dark .swal2-styled.swal2-confirm:hover {
+    background: rgb(var(--primary-700)) !important;
+  }
+  html.dark .swal2-styled.swal2-cancel,
+  html.dark .swal2-styled.swal2-deny {
+    background: rgb(51 65 85) !important;
+    color: rgb(var(--fg)) !important;
+  }
+  html.dark .swal2-styled.swal2-cancel:hover,
+  html.dark .swal2-styled.swal2-deny:hover {
+    background: rgb(71 85 105) !important;
+  }
+
+  /* Inputs (if you ever use Swal with input fields) */
+  html.dark .swal2-input,
+  html.dark .swal2-textarea,
+  html.dark .swal2-select {
+    background: rgb(30 41 59) !important;
+    color: rgb(var(--fg)) !important;
+    border: 1px solid rgb(var(--border)) !important;
+  }
+  html.dark .swal2-input:focus,
+  html.dark .swal2-textarea:focus,
+  html.dark .swal2-select:focus {
+    border-color: rgba(79, 70, 229, 0.6) !important;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14) !important;
+  }
+
+  /* ============================================================
+   * Search Result Highlighting
+   * - Highlights matching text in search results (topbar & command palette)
+   * ============================================================ */
+  mark {
+    background-color: rgb(254 240 138) !important; /* yellow-200 */
+    color: rgb(15 23 42) !important; /* slate-900 */
+    padding: 0 2px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  
+  html.dark mark {
+    background-color: rgba(253, 224, 71, 0.3) !important; /* yellow-400 with opacity */
+    color: rgb(254 240 138) !important; /* yellow-200 */
+  }
+  
+  /* Ensure mark inside code tags maintains proper styling */
+  code mark {
+    background-color: rgb(254 240 138) !important;
+    color: rgb(15 23 42) !important;
+    font-weight: 600;
+  }
+  
+  html.dark code mark {
+    background-color: rgba(253, 224, 71, 0.3) !important;
+    color: rgb(254 240 138) !important;
   }
 </style>
